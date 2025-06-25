@@ -32,11 +32,27 @@ locals {
     ManagedBy   = "Terraform"
   }
 
+  # Determine if the environment is production
+  is_production = true
+
   # VPC CIDR configuration
   vpc_cidr = var.vpc_cidr
 
   # Availability zones
-  azs = data.aws_availability_zones.available.names
+  azs = slice(data.aws_availability_zones.available.names, 0, var.az_count)
 }
 
 # VPC configuration
+module "vpc" {
+  source = "../../../modules/aws/networking/vpc"
+
+  vpc_cidr             = local.vpc_cidr
+  availability_zones   = slice(local.azs, 0, 2)
+  stack_name           = var.stack_name
+  common_tags          = local.common_tags
+  enable_nat_gateway   = true
+  single_nat_gateway   = !local.is_production
+  enable_dns_hostnames = true
+  enable_dns_support   = true
+  #   enable_vpc_endpoints = true
+}
