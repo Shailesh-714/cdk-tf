@@ -44,7 +44,7 @@ locals {
 
 # VPC configuration
 module "vpc" {
-  source = "../../../modules/aws/networking/vpc"
+  source = "../../../modules/aws/networking"
 
   vpc_cidr             = local.vpc_cidr
   availability_zones   = slice(local.azs, 0, 2)
