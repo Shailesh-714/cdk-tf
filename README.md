@@ -1,10 +1,12 @@
 terraform :
 
-    aws:
+    - aws:
         networking:
-
-            vpc:
-                - vpc
-                - internet gateway
-                - nat-eip
-                - nat gateway
+            - vpc
+            - internet gateway
+            - nat-eip
+            - nat gateway
+            - subnets
+            - routes
+            - route tables
+            - route table associations
