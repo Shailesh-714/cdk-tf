@@ -31,9 +31,9 @@ variable "private_with_nat_route_table_ids" {
   default     = []
 }
 
-variable "incoming_web_envoy_zone_subnet_ids" {
-  description = "List of subnet IDs for incoming web envoy zone"
-  type        = list(string)
+variable "subnet_ids" {
+  description = "Map of subnet lists by zone name"
+  type        = map(list(string))
 }
 
 variable "vpc_endpoints_security_group_id" {

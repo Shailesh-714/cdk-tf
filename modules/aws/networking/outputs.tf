@@ -153,3 +153,27 @@ output "subnet_cidr_blocks" {
     incoming_web_envoy_zone = aws_subnet.incoming_web_envoy_zone[*].cidr_block
   }
 }
+
+output "subnet_ids" {
+  description = "Map of all subnet IDs"
+  value = {
+    public                  = aws_subnet.public[*].id
+    isolated                = aws_subnet.isolated[*].id
+    database_isolated       = aws_subnet.database_isolated[*].id
+    eks_worker_nodes        = aws_subnet.eks_worker_nodes[*].id
+    utils_zone              = aws_subnet.utils_zone[*].id
+    management_zone         = aws_subnet.management_zone[*].id
+    locker_database_zone    = aws_subnet.locker_database_zone[*].id
+    service_layer_zone      = aws_subnet.service_layer_zone[*].id
+    data_stack_zone         = aws_subnet.data_stack_zone[*].id
+    external_incoming_zone  = aws_subnet.external_incoming_zone[*].id
+    database_zone           = aws_subnet.database_zone[*].id
+    outgoing_proxy_lb_zone  = aws_subnet.outgoing_proxy_lb_zone[*].id
+    outgoing_proxy_zone     = aws_subnet.outgoing_proxy_zone[*].id
+    locker_server_zone      = aws_subnet.locker_server_zone[*].id
+    elasticache_zone        = aws_subnet.elasticache_zone[*].id
+    incoming_npci_zone      = aws_subnet.incoming_npci_zone[*].id
+    eks_control_plane_zone  = aws_subnet.eks_control_plane_zone[*].id
+    incoming_web_envoy_zone = aws_subnet.incoming_web_envoy_zone[*].id
+  }
+}
