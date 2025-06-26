@@ -54,5 +54,27 @@ module "vpc" {
   single_nat_gateway   = !local.is_production
   enable_dns_hostnames = true
   enable_dns_support   = true
-  #   enable_vpc_endpoints = true
+}
+
+module "security" {
+  source = "../../../modules/aws/security"
+
+  stack_name    = var.stack_name
+  common_tags   = local.common_tags
+  is_production = local.is_production
+  vpc_id        = module.vpc.vpc_id
+  vpc_cidr      = local.vpc_cidr
+  vpn_ips       = var.vpn_ips
+}
+
+module "endpoints" {
+  source = "../../../modules/aws/endpoints"
+
+  stack_name                         = var.stack_name
+  common_tags                        = local.common_tags
+  vpc_id                             = module.vpc.vpc_id
+  isolated_route_table_id            = module.vpc.isolated_route_table_id
+  private_with_nat_route_table_ids   = module.vpc.private_with_nat_route_table_ids
+  incoming_web_envoy_zone_subnet_ids = module.vpc.incoming_web_envoy_zone_subnet_ids
+  vpc_endpoints_security_group_id    = module.security.vpc_endpoints_security_group_id
 }

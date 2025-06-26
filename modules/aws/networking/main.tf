@@ -549,3 +549,5 @@ resource "aws_route_table_association" "elasticache_zone" {
   subnet_id      = aws_subnet.elasticache_zone[count.index].id
   route_table_id = aws_route_table.isolated.id
 }
+
+
