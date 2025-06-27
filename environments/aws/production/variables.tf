@@ -45,3 +45,39 @@ variable "log_retention_days" {
   type        = number
   default     = 30
 }
+
+variable "db_password" {
+  description = "Password for the database"
+  type        = string
+  sensitive   = true
+}
+
+variable "jwt_secret" {
+  description = "Secret for JWT authentication"
+  type        = string
+  sensitive   = true
+}
+
+variable "master_key" {
+  description = "Master key for encryption"
+  type        = string
+  sensitive   = true
+}
+
+variable "admin_api_key" {
+  description = "API key for admin access"
+  type        = string
+  sensitive   = true
+}
+
+variable "locker_public_key" {
+  description = "Public key for the locker service"
+  type        = string
+  sensitive   = true
+}
+
+variable "tenant_private_key" {
+  description = "Private key for the tenant"
+  type        = string
+  sensitive   = true
+}

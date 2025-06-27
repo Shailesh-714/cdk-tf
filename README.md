@@ -64,3 +64,4 @@ notes:
 - changing iam policies named kms with appropriate names
 - add cluster admin role for users
 - should we omit instance types for some node groups
+- we are giving excess permissions than neccessary in the kms_policy_document

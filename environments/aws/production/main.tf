@@ -65,6 +65,13 @@ module "security" {
   vpc_id        = module.vpc.vpc_id
   vpc_cidr      = local.vpc_cidr
   vpn_ips       = var.vpn_ips
+
+  db_password        = var.db_password
+  jwt_secret         = var.jwt_secret
+  master_key         = var.master_key
+  admin_api_key      = var.admin_api_key
+  locker_public_key  = var.locker_public_key
+  tenant_private_key = var.tenant_private_key
 }
 
 module "endpoints" {

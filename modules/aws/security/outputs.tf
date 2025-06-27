@@ -56,3 +56,11 @@ output "eks_node_group_role_arn" {
   description = "ARN of the EKS Node Group IAM Role"
   value       = aws_iam_role.eks_node_group.arn
 }
+
+# Output for KMS secrets
+output "kms_secrets" {
+  value = merge(
+    { for k, v in data.aws_ssm_parameter.all : k => v.value }
+  )
+  sensitive = true
+}
