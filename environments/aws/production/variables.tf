@@ -13,7 +13,7 @@ variable "stack_name" {
 variable "environment" {
   description = "Environment name (dev, staging, prod)"
   type        = string
-  default     = "dev"
+  default     = "Production"
 }
 
 variable "vpc_cidr" {
@@ -25,11 +25,23 @@ variable "vpc_cidr" {
 variable "vpn_ips" {
   description = "List of VPN IPs for security group rules"
   type        = list(string)
-  default     = []
+  default     = ["3.7.40.245/32", "13.232.74.226/32", "65.1.52.128/32"]
 }
 
 variable "az_count" {
   description = "Number of availability zones to use"
   type        = number
   default     = 2
+}
+
+variable "kubernetes_version" {
+  description = "Kubernetes version for EKS cluster"
+  type        = string
+  default     = "1.28"
+}
+
+variable "log_retention_days" {
+  description = "CloudWatch log retention in days"
+  type        = number
+  default     = 30
 }

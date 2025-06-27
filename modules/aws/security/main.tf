@@ -146,3 +146,168 @@ resource "aws_security_group" "vpc_endpoints" {
     Name = "${var.stack_name}-vpce-sg"
   })
 }
+
+# ==========================================================
+#                         IAM Roles
+# ==========================================================
+
+# EKS Cluster Service Role
+resource "aws_iam_role" "eks_cluster" {
+  name = "${var.stack_name}-eks-cluster-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "eks.amazonaws.com"
+        }
+      }
+    ]
+  })
+
+  tags = var.common_tags
+}
+
+# EKS Node Group Role
+resource "aws_iam_role" "eks_node_group" {
+  name = "${var.stack_name}-eks-node-group-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "ec2.amazonaws.com"
+        }
+      }
+    ]
+  })
+
+  tags = var.common_tags
+}
+
+# ==========================================================
+#                       IAM Policies
+# ==========================================================
+
+# ==========================================================
+#                 IAM Role-Policies (Inline)
+# ==========================================================
+
+# Custom CloudWatch Policy for Node Groups
+resource "aws_iam_role_policy" "eks_cloudwatch_custom" {
+  name = "${var.stack_name}-eks-cloudwatch-policy"
+  role = aws_iam_role.eks_node_group.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "cloudwatch:DescribeAlarmsForMetric",
+          "cloudwatch:DescribeAlarmHistory",
+          "cloudwatch:DescribeAlarms",
+          "cloudwatch:ListMetrics",
+          "cloudwatch:GetMetricData",
+          "cloudwatch:GetInsightRuleReport",
+          "logs:DescribeLogGroups",
+          "logs:GetLogGroupFields",
+          "logs:StartQuery",
+          "logs:StopQuery",
+          "logs:GetQueryResults",
+          "logs:GetLogEvents",
+          "ec2:DescribeTags",
+          "ec2:DescribeInstances",
+          "ec2:DescribeRegions",
+          "tag:GetResources",
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+# ==========================================================
+#                IAM Role-Policiy Attachments
+# ==========================================================
+
+# EKS Cluster Policy
+resource "aws_iam_role_policy_attachment" "eks_cluster_policy_attachment" {
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
+  role       = aws_iam_role.eks_cluster.name
+}
+
+# Node Group Required Policies
+resource "aws_iam_role_policy_attachment" "eks_worker_node_policy_attachment" {
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
+  role       = aws_iam_role.eks_node_group.name
+}
+
+resource "aws_iam_role_policy_attachment" "eks_cni_policy_attachment" {
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
+  role       = aws_iam_role.eks_node_group.name
+}
+
+resource "aws_iam_role_policy_attachment" "eks_container_registry_policy_attachment" {
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
+  role       = aws_iam_role.eks_node_group.name
+}
+
+resource "aws_iam_role_policy_attachment" "eks_cloudwatch_policy_attachment" {
+  policy_arn = "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
+  role       = aws_iam_role.eks_node_group.name
+}
+
+resource "aws_iam_role_policy_attachment" "eks_ec2_readonly_policy_attachment" {
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ReadOnlyAccess"
+  role       = aws_iam_role.eks_node_group.name
+}
+
+resource "aws_iam_role_policy_attachment" "eks_ebs_csi_policy_attachment" {
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
+  role       = aws_iam_role.eks_node_group.name
+}
+
+# ==========================================================
+#                  KMS Keys and Aliases
+# ==========================================================
+
+# KMS Key for Hyperswitch
+resource "aws_kms_key" "hyperswitch_kms_key" {
+  description             = "KMS key for encrypting the objects in an S3 bucket"
+  key_usage               = "ENCRYPT_DECRYPT"
+  deletion_window_in_days = 7
+  enable_key_rotation     = false # CDK: enableKeyRotation: false
+
+  tags = var.common_tags
+}
+
+# Hyperswitch KMS Key Alias
+resource "aws_kms_alias" "hyperswitch_kms_key_alias" {
+  name          = "alias/hyperswitch-kms-key"
+  target_key_id = aws_kms_key.hyperswitch_kms_key.key_id
+}
+
+# KMS Key for SSM
+resource "aws_kms_key" "hyperswitch_ssm_kms_key" {
+  description             = "KMS key for encrypting the objects in an S3 bucket"
+  key_usage               = "ENCRYPT_DECRYPT"
+  deletion_window_in_days = 7
+  enable_key_rotation     = true # CDK: enableKeyRotation: true
+
+  tags = merge(var.common_tags, {
+    Name = "${var.stack_name}-ssm-kms-key"
+  })
+}
+
+# Hyperswitch SSM KMS Key Alias
+resource "aws_kms_alias" "hyperswitch_ssm_kms_key_alias" {
+  name          = "alias/hyperswitch-ssm-kms-key"
+  target_key_id = aws_kms_key.hyperswitch_ssm_kms_key.key_id
+}
