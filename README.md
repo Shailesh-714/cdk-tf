@@ -48,6 +48,8 @@ terraform :
             main:
                 - main cluster
                 - eks cloudwatch log group
+                - all node groups
+
             irsa:
                 - tls certificate
                 - oidc provider
@@ -61,3 +63,4 @@ notes:
 
 - changing iam policies named kms with appropriate names
 - add cluster admin role for users
+- should we omit instance types for some node groups

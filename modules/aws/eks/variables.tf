@@ -30,6 +30,11 @@ variable "kubernetes_version" {
   type        = string
 }
 
+variable "subnet_ids" {
+  description = "List of subnet IDs for the EKS cluster"
+  type        = map(list(string))
+}
+
 variable "private_subnet_ids" {
   description = "List of private subnet IDs for the EKS cluster"
   type        = list(string)
@@ -50,6 +55,11 @@ variable "eks_cluster_role_arn" {
   type        = string
 }
 
+variable "eks_node_group_role_arn" {
+  description = "ARN of the EKS Node Group IAM Role"
+  type        = string
+}
+
 variable "kms_key_arn" {
   description = "ARN of the KMS key for EKS encryption"
   type        = string
@@ -59,3 +69,4 @@ variable "log_retention_days" {
   description = "Retention period for EKS CloudWatch logs in days"
   type        = number
 }
+

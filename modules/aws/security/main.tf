@@ -145,6 +145,10 @@ resource "aws_security_group" "vpc_endpoints" {
   tags = merge(var.common_tags, {
     Name = "${var.stack_name}-vpce-sg"
   })
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 # ==========================================================

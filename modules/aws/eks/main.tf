@@ -1,3 +1,7 @@
+# ==========================================================
+#                        EKS Cluster
+# ==========================================================
+
 # EKS Cluster
 resource "aws_eks_cluster" "main" {
   name     = "${var.stack_name}-cluster"
@@ -39,4 +43,293 @@ resource "aws_cloudwatch_log_group" "eks" {
   retention_in_days = var.log_retention_days
 
   tags = var.common_tags
+}
+
+# ==========================================================
+#                       EKS Node Groups
+# ==========================================================
+
+resource "aws_eks_node_group" "hs_nodegroup" {
+  cluster_name    = aws_eks_cluster.main.name
+  node_group_name = "hs-nodegroup"
+  node_role_arn   = var.eks_node_group_role_arn
+
+  subnet_ids = var.subnet_ids["eks_worker_nodes"]
+
+  scaling_config {
+    desired_size = 2
+    max_size     = 3
+    min_size     = 1
+  }
+
+  instance_types = ["t3.medium"]
+
+  labels = {
+    "node-type" = "generic-compute"
+  }
+
+  tags = merge(var.common_tags, {
+    Name = "hs-nodegroup"
+  })
+}
+
+resource "aws_eks_node_group" "hs_autopilot_nodegroup" {
+  cluster_name    = aws_eks_cluster.main.name
+  node_group_name = "autopilot-od"
+  node_role_arn   = var.eks_node_group_role_arn
+
+  subnet_ids = var.subnet_ids["eks_worker_nodes"]
+
+  scaling_config {
+    desired_size = 1
+    max_size     = 2
+    min_size     = 1
+  }
+
+  instance_types = ["t3.medium"]
+
+  labels = {
+    "service" : "autopilot",
+    "node-type" : "autopilot-od",
+  }
+
+  tags = merge(var.common_tags, {
+    Name = "autopilot-od"
+  })
+}
+
+resource "aws_eks_node_group" "hs_ckh_zookeeper_nodegroup" {
+  cluster_name    = aws_eks_cluster.main.name
+  node_group_name = "ckh-zookeeper-compute"
+  node_role_arn   = var.eks_node_group_role_arn
+
+  subnet_ids = var.subnet_ids["eks_worker_nodes"]
+
+  scaling_config {
+    desired_size = 3
+    max_size     = 8
+    min_size     = 3
+  }
+
+  labels = {
+    "node-type" : "ckh-zookeeper-compute",
+  }
+
+  tags = merge(var.common_tags, {
+    Name = "ckh-zookeeper-compute"
+  })
+}
+
+resource "aws_eks_node_group" "hs_ckh_compute_nodegroup" {
+  cluster_name    = aws_eks_cluster.main.name
+  node_group_name = "clickhouse-compute-OD"
+  node_role_arn   = var.eks_node_group_role_arn
+
+  subnet_ids = var.subnet_ids["eks_worker_nodes"]
+
+  scaling_config {
+    desired_size = 2
+    max_size     = 3
+    min_size     = 2
+  }
+
+  labels = {
+    "node-type" : "clickhouse-compute",
+  }
+
+  tags = merge(var.common_tags, {
+    Name = "clickhouse-compute-OD"
+  })
+}
+
+resource "aws_eks_node_group" "hs_control_center_nodegroup" {
+  cluster_name    = aws_eks_cluster.main.name
+  node_group_name = "control-center"
+  node_role_arn   = var.eks_node_group_role_arn
+
+  subnet_ids = var.subnet_ids["eks_worker_nodes"]
+
+  scaling_config {
+    desired_size = 1
+    max_size     = 5
+    min_size     = 1
+  }
+
+  instance_types = ["t3.medium"]
+
+  labels = {
+    "node-type" : "control-center",
+  }
+
+  tags = merge(var.common_tags, {
+    Name = "control-center"
+  })
+}
+
+resource "aws_eks_node_group" "hs_kafka_compute_nodegroup" {
+  cluster_name    = aws_eks_cluster.main.name
+  node_group_name = "kafka-compute-OD"
+  node_role_arn   = var.eks_node_group_role_arn
+
+  subnet_ids = var.subnet_ids["eks_worker_nodes"]
+
+  scaling_config {
+    desired_size = 3
+    max_size     = 6
+    min_size     = 3
+  }
+
+  labels = {
+    "node-type" : "kafka-compute",
+  }
+
+  tags = merge(var.common_tags, {
+    Name = "kafka-compute-OD"
+  })
+}
+
+resource "aws_eks_node_group" "hs_memory_optimized_nodegroup" {
+  cluster_name    = aws_eks_cluster.main.name
+  node_group_name = "memory-optimized-od"
+  node_role_arn   = var.eks_node_group_role_arn
+
+  subnet_ids = var.subnet_ids["eks_worker_nodes"]
+
+  scaling_config {
+    desired_size = 2
+    max_size     = 5
+    min_size     = 1
+  }
+
+  instance_types = ["t3.medium"]
+
+  labels = {
+    "node-type" : "memory-optimized",
+  }
+
+  tags = merge(var.common_tags, {
+    Name = "memory-optimized-od"
+  })
+}
+
+resource "aws_eks_node_group" "hs_monitoring_nodegroup" {
+  cluster_name    = aws_eks_cluster.main.name
+  node_group_name = "monitoring-od"
+  node_role_arn   = var.eks_node_group_role_arn
+
+  subnet_ids = var.subnet_ids["eks_worker_nodes"]
+
+  scaling_config {
+    desired_size = 6
+    max_size     = 63
+    min_size     = 3
+  }
+
+  instance_types = ["t3.medium"]
+
+  labels = {
+    "node-type" : "monitoring",
+  }
+
+  tags = merge(var.common_tags, {
+    Name = "monitoring-od"
+  })
+}
+
+resource "aws_eks_node_group" "hs_pomerium_nodegroup" {
+  cluster_name    = aws_eks_cluster.main.name
+  node_group_name = "pomerium"
+  node_role_arn   = var.eks_node_group_role_arn
+
+  subnet_ids = var.subnet_ids["eks_worker_nodes"]
+
+  scaling_config {
+    desired_size = 2
+    max_size     = 2
+    min_size     = 2
+  }
+
+  instance_types = ["t3.medium"]
+
+  labels = {
+    "service" : "pomerium",
+    "node-type" : "pomerium",
+    "function" : "SSO",
+  }
+
+  tags = merge(var.common_tags, {
+    Name = "pomerium"
+  })
+}
+
+resource "aws_eks_node_group" "hs_system_nodegroup" {
+  cluster_name    = aws_eks_cluster.main.name
+  node_group_name = "system-nodes-od"
+  node_role_arn   = var.eks_node_group_role_arn
+
+  subnet_ids = var.subnet_ids["eks_worker_nodes"]
+
+  scaling_config {
+    desired_size = 1
+    max_size     = 5
+    min_size     = 1
+  }
+
+  instance_types = ["t3.medium"]
+
+  labels = {
+    "node-type" : "system-nodes",
+  }
+
+  tags = merge(var.common_tags, {
+    Name = "system-nodes-od"
+  })
+}
+
+resource "aws_eks_node_group" "hs_utils_nodegroup" {
+  cluster_name    = aws_eks_cluster.main.name
+  node_group_name = "utils-compute-od"
+  node_role_arn   = var.eks_node_group_role_arn
+
+  subnet_ids = var.subnet_ids["utils_zone"]
+
+  scaling_config {
+    desired_size = 5
+    max_size     = 8
+    min_size     = 5
+  }
+
+  instance_types = ["t3.medium"]
+
+  labels = {
+    "node-type" : "elasticsearch",
+  }
+
+  tags = merge(var.common_tags, {
+    Name = "utils-compute-od"
+  })
+}
+
+resource "aws_eks_node_group" "hs_zk_compute_nodegroup" {
+  cluster_name    = aws_eks_cluster.main.name
+  node_group_name = "zookeeper-compute"
+  node_role_arn   = var.eks_node_group_role_arn
+
+  subnet_ids = var.subnet_ids["eks_worker_nodes"]
+
+  scaling_config {
+    desired_size = 3
+    max_size     = 10
+    min_size     = 3
+  }
+
+  instance_types = ["t3.medium"]
+
+  labels = {
+    "node-type" : "zookeeper-compute",
+  }
+
+  tags = merge(var.common_tags, {
+    Name = "zookeeper-compute"
+  })
 }

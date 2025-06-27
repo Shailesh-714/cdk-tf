@@ -86,12 +86,14 @@ module "eks" {
   common_tags                   = local.common_tags
   vpc_id                        = module.vpc.vpc_id
   vpc_cidr                      = local.vpc_cidr
+  subnet_ids                    = module.vpc.subnet_ids
   private_subnet_ids            = module.vpc.eks_worker_nodes_subnet_ids
   control_plane_subnet_ids      = module.vpc.eks_control_plane_zone_subnet_ids
   kubernetes_version            = var.kubernetes_version
   vpn_ips                       = var.vpn_ips
   eks_cluster_security_group_id = module.security.eks_cluster_security_group_id
   eks_cluster_role_arn          = module.security.eks_cluster_role_arn
+  eks_node_group_role_arn       = module.security.eks_node_group_role_arn
   kms_key_arn                   = module.security.hyperswitch_kms_key_arn
   log_retention_days            = var.log_retention_days
 }
