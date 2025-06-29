@@ -1,3 +1,6 @@
+# AWS Current Region
+data "aws_region" "current" {}
+
 # ==========================================================
 #                  OpenID Connect Provider
 # ==========================================================
@@ -106,7 +109,7 @@ module "aws_load_balancer_controller_irsa" {
   }
 }
 
-# Create the service account
+# Service account for AWS Load Balancer Controller
 resource "kubernetes_service_account" "alb_controller" {
   metadata {
     name      = "aws-load-balancer-controller-sa"
@@ -116,4 +119,16 @@ resource "kubernetes_service_account" "alb_controller" {
       "eks.amazonaws.com/role-arn" = module.aws_load_balancer_controller_irsa.iam_role_arn
     }
   }
+}
+
+
+resource "kubernetes_service_account" "ebs_csi_controller_sa" {
+  metadata {
+    name      = "ebs-csi-controller-sa-${data.aws_region.current.name}"
+    namespace = "kube-system"
+    annotations = {
+      "eks.amazonaws.com/role-arn" = var.eks_node_group_role_arn
+    }
+  }
+  depends_on = [aws_eks_cluster.main]
 }

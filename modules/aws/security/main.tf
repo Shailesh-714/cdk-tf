@@ -69,65 +69,6 @@ resource "aws_security_group" "eks_nodes" {
   }
 }
 
-# ALB Security Group
-resource "aws_security_group" "alb" {
-  name_prefix = "${var.stack_name}-alb-"
-  vpc_id      = var.vpc_id
-  description = "Security group for Application Load Balancer"
-
-  dynamic "ingress" {
-    for_each = var.is_production ? [] : [1]
-    content {
-      description = "HTTP from anywhere"
-      from_port   = 80
-      to_port     = 80
-      protocol    = "tcp"
-      cidr_blocks = ["0.0.0.0/0"]
-    }
-  }
-
-  dynamic "ingress" {
-    for_each = var.is_production ? [1] : []
-    content {
-      description = "HTTPS from VPN IPs"
-      from_port   = 443
-      to_port     = 443
-      protocol    = "tcp"
-      cidr_blocks = length(var.vpn_ips) > 0 ? var.vpn_ips : ["0.0.0.0/0"]
-    }
-  }
-
-  dynamic "ingress" {
-    for_each = var.is_production ? [1] : []
-    content {
-      description = "HTTP from VPN IPs"
-      from_port   = 80
-      to_port     = 80
-      protocol    = "tcp"
-      cidr_blocks = length(var.vpn_ips) > 0 ? var.vpn_ips : ["0.0.0.0/0"]
-    }
-  }
-
-  egress {
-    description = "Allow all outbound"
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  tags = merge(
-    var.common_tags,
-    {
-      Name = "${var.stack_name}-alb-sg"
-    }
-  )
-
-  lifecycle {
-    create_before_destroy = true
-  }
-}
-
 # Security Group for VPC Endpoints
 resource "aws_security_group" "vpc_endpoints" {
   name_prefix = "${var.stack_name}-vpce-"
@@ -155,6 +96,139 @@ resource "aws_security_group" "vpc_endpoints" {
   lifecycle {
     create_before_destroy = true
   }
+}
+
+# External Load Balancer Security Group
+resource "aws_security_group" "external_lb_sg" {
+  name        = "hyperswitch-external-lb-sg"
+  description = "Security group for external-facing load balancer"
+  vpc_id      = var.vpc_id
+
+  # Ingress rules - Only allow HTTP/HTTPS from CloudFront
+  ingress {
+    description = "HTTP from CloudFront"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = length(var.vpn_ips) > 0 ? var.vpn_ips : ["0.0.0.0/0"] # In production, use CloudFront prefix list
+  }
+
+  ingress {
+    description = "HTTPS from CloudFront"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = length(var.vpn_ips) > 0 ? var.vpn_ips : ["0.0.0.0/0"] # In production, use CloudFront prefix list
+  }
+
+  # No egress rules here - will be added as specific rules
+
+  tags = {
+    Name = "hyperswitch-external-lb-sg"
+  }
+}
+
+# Envoy Proxy Security Group
+resource "aws_security_group" "envoy_sg" {
+  name        = "hyperswitch-envoy-sg"
+  description = "Security group for Envoy proxy instances"
+  vpc_id      = var.vpc_id
+
+  tags = {
+    Name = "hyperswitch-envoy-sg"
+  }
+}
+
+# Internal Load Balancer Security Group
+resource "aws_security_group" "internal_lb_sg" {
+  name        = "hyperswitch-internal-lb-sg"
+  description = "Security group for internal load balancer"
+  vpc_id      = var.vpc_id
+
+  tags = {
+    Name = "hyperswitch-internal-lb-sg"
+  }
+}
+
+# ==========================================================
+#                   Security Group Rules
+# ==========================================================
+
+# External LB -> Envoy (egress)
+resource "aws_security_group_rule" "external_lb_to_envoy_egress" {
+  type                     = "egress"
+  from_port                = 80
+  to_port                  = 80
+  protocol                 = "tcp"
+  source_security_group_id = aws_security_group.envoy_sg.id
+  security_group_id        = aws_security_group.external_lb_sg.id
+  description              = "Allow traffic to Envoy proxy"
+}
+
+# External LB -> Envoy (ingress)
+resource "aws_security_group_rule" "envoy_from_external_lb_ingress" {
+  type                     = "ingress"
+  from_port                = 80
+  to_port                  = 80
+  protocol                 = "tcp"
+  source_security_group_id = aws_security_group.external_lb_sg.id
+  security_group_id        = aws_security_group.envoy_sg.id
+  description              = "Allow traffic from External LB"
+}
+
+# Envoy -> Internal LB (egress)
+resource "aws_security_group_rule" "envoy_to_internal_lb_egress" {
+  type                     = "egress"
+  from_port                = 80
+  to_port                  = 80
+  protocol                 = "tcp"
+  source_security_group_id = aws_security_group.internal_lb_sg.id
+  security_group_id        = aws_security_group.envoy_sg.id
+  description              = "Allow traffic to Internal LB"
+}
+
+# Envoy -> Internal LB (ingress)
+resource "aws_security_group_rule" "internal_lb_from_envoy_ingress" {
+  type                     = "ingress"
+  from_port                = 80
+  to_port                  = 80
+  protocol                 = "tcp"
+  source_security_group_id = aws_security_group.envoy_sg.id
+  security_group_id        = aws_security_group.internal_lb_sg.id
+  description              = "Allow traffic from Envoy"
+}
+
+# Internal LB -> EKS (Istio Gateway - egress)
+resource "aws_security_group_rule" "internal_lb_to_eks_egress" {
+  type                     = "egress"
+  from_port                = 80
+  to_port                  = 80
+  protocol                 = "tcp"
+  source_security_group_id = aws_security_group.eks_cluster.id
+  security_group_id        = aws_security_group.internal_lb_sg.id
+  description              = "Allow traffic to EKS cluster"
+}
+
+# Internal LB -> EKS (Istio Gateway - health check - egress)
+resource "aws_security_group_rule" "internal_lb_to_eks_health_egress" {
+  type                     = "egress"
+  from_port                = 15021
+  to_port                  = 15021
+  protocol                 = "tcp"
+  source_security_group_id = aws_security_group.eks_cluster.id
+  security_group_id        = aws_security_group.internal_lb_sg.id
+  description              = "Allow Istio health checks"
+}
+
+# Internal LB -> EKS (Istio Gateway - ingress)
+resource "aws_security_group_rule" "eks_from_internal_lb_ingress" {
+  type                     = "ingress"
+  from_port                = 80
+  to_port                  = 80
+  protocol                 = "tcp"
+  source_security_group_id = aws_security_group.internal_lb_sg.id
+  security_group_id        = aws_security_group.eks_cluster.id
+  description              = "Allow traffic from Internal LB"
 }
 
 # ==========================================================
