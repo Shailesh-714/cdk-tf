@@ -40,6 +40,12 @@ variable "kubernetes_version" {
   default     = "1.28"
 }
 
+variable "helm_version" {
+  description = "Helm version to use"
+  type        = string
+  default     = "3.12"
+}
+
 variable "log_retention_days" {
   description = "CloudWatch log retention in days"
   type        = number

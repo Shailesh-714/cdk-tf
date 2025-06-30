@@ -13,6 +13,11 @@ output "vpc_endpoints_security_group_id" {
   value       = aws_security_group.vpc_endpoints.id
 }
 
+output "external_lb_security_group_id" {
+  description = "ID of the External Load Balancer Security Group"
+  value       = aws_security_group.external_lb_sg.id
+}
+
 output "hyperswitch_kms_key_id" {
   description = "ID of the KMS key"
   value       = aws_kms_key.hyperswitch_kms_key.id
@@ -58,4 +63,10 @@ output "kms_secrets" {
     { for k, v in data.aws_ssm_parameter.all : k => v.value }
   )
   sensitive = true
+}
+
+output "waf_web_acl_arn" {
+  description = "ARN of the WAF Web ACL"
+  value       = aws_wafv2_web_acl.hyperswitch_waf.arn
+
 }

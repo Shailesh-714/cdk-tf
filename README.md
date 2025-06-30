@@ -83,3 +83,5 @@ notes:
 - find a way to allow traffic to ext lb (also verify if its correct)
 - is adding the ebs csi service account unneccessary as we are attaching the policy to node group role
 - remember to inplement the log collection for cloudwatch and s3 bucket
+- IMPORTANT: stack name should be in lower and only "-" is allowed
+- search for [0] and verify belongs to count or not

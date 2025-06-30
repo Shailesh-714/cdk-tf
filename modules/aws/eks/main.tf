@@ -1,3 +1,6 @@
+# AWS Current Region
+data "aws_region" "current" {}
+
 # ==========================================================
 #                        EKS Cluster
 # ==========================================================
@@ -43,6 +46,20 @@ resource "aws_cloudwatch_log_group" "eks" {
   retention_in_days = var.log_retention_days
 
   tags = var.common_tags
+}
+
+# ==========================================================
+#                Kubernetes Provider Config
+# ==========================================================
+
+provider "kubernetes" {
+  host                   = aws_eks_cluster.main.endpoint
+  cluster_ca_certificate = base64decode(aws_eks_cluster.main.certificate_authority[0].data)
+  token                  = data.aws_eks_cluster_auth.main.token
+}
+
+data "aws_eks_cluster_auth" "main" {
+  name = aws_eks_cluster.main.name
 }
 
 # ==========================================================

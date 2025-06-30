@@ -9,6 +9,14 @@ terraform {
       source  = "hashicorp/random"
       version = "~> 3.5"
     }
+    kubernetes = {
+      source  = "hashicorp/kubernetes"
+      version = "2.37.1"
+    }
+    helm = {
+      source  = "hashicorp/helm"
+      version = "3.0.2"
+    }
   }
 }
 
@@ -21,6 +29,9 @@ provider "aws" {
 data "aws_availability_zones" "available" {
   state = "available"
 }
+
+
+data "aws_region" "current" {}
 
 data "aws_caller_identity" "current" {}
 
@@ -40,6 +51,9 @@ locals {
 
   # Availability zones
   azs = slice(data.aws_availability_zones.available.names, 0, var.az_count)
+
+  # Private ECR repository for EKS
+  private_ecr_repository = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${data.aws_region.current.name}.amazonaws.com"
 }
 
 # VPC configuration
@@ -86,6 +100,18 @@ module "endpoints" {
   vpc_endpoints_security_group_id  = module.security.vpc_endpoints_security_group_id
 }
 
+module "loadbalancers" {
+  source = "../../../modules/aws/loadbalancers"
+
+  stack_name                    = var.stack_name
+  common_tags                   = local.common_tags
+  vpc_id                        = module.vpc.vpc_id
+  subnet_ids                    = module.vpc.subnet_ids
+  external_lb_security_group_id = module.security.external_lb_security_group_id
+  waf_web_acl_arn               = module.security.waf_web_acl_arn
+  # vpc_endpoints_security_group_id = module.security.vpc_endpoints_security_group_id
+}
+
 module "eks" {
   source = "../../../modules/aws/eks"
 
@@ -103,4 +129,15 @@ module "eks" {
   eks_node_group_role_arn       = module.security.eks_node_group_role_arn
   kms_key_arn                   = module.security.hyperswitch_kms_key_arn
   log_retention_days            = var.log_retention_days
+}
+
+module "helm" {
+  source = "../../../modules/aws/helm"
+
+  stack_name             = var.stack_name
+  common_tags            = local.common_tags
+  vpc_id                 = module.vpc.vpc_id
+  private_ecr_repository = local.private_ecr_repository
+  eks_cluster_name       = module.eks.eks_cluster_name
+
 }
