@@ -85,3 +85,4 @@ notes:
 - remember to inplement the log collection for cloudwatch and s3 bucket
 - IMPORTANT: stack name should be in lower and only "-" is allowed
 - search for [0] and verify belongs to count or not
+- keymanager construct is still pending

@@ -36,7 +36,7 @@ resource "helm_release" "alb_controller" {
 
   values = [
     yamlencode({
-      clusterName = aws_eks_cluster.main.name
+      clusterName = data.aws_eks_cluster.main.name
 
       image = {
         repository = "${var.private_ecr_repository}/eks/aws-load-balancer-controller"
@@ -49,14 +49,11 @@ resource "helm_release" "alb_controller" {
 
       serviceAccount = {
         create = false
-        name   = kubernetes_service_account.alb_controller.metadata[0].name
+        name   = var.alb_controller_service_account_name
       }
     })
   ]
 
-  depends_on = [
-    kubernetes_service_account.alb_controller
-  ]
 }
 
 # Helm release for EBS CSI Driver
@@ -120,9 +117,6 @@ resource "helm_release" "ebs_csi_driver" {
       }
     })
   ]
-  depends_on = [
-    kubernetes_service_account.ebs_csi_controller_sa
-  ]
 }
 
 
@@ -171,6 +165,7 @@ resource "helm_release" "istiod" {
   ]
 }
 
+# Helm release for Istio ingress gateway
 resource "helm_release" "istio_gateway" {
   name       = "istio-ingressgateway"
   repository = "https://istio-release.storage.googleapis.com/charts"
@@ -198,3 +193,6 @@ resource "helm_release" "istio_gateway" {
     helm_release.istiod
   ]
 }
+
+
+

@@ -134,10 +134,12 @@ module "eks" {
 module "helm" {
   source = "../../../modules/aws/helm"
 
-  stack_name             = var.stack_name
-  common_tags            = local.common_tags
-  vpc_id                 = module.vpc.vpc_id
-  private_ecr_repository = local.private_ecr_repository
-  eks_cluster_name       = module.eks.eks_cluster_name
+  stack_name                          = var.stack_name
+  common_tags                         = local.common_tags
+  vpc_id                              = module.vpc.vpc_id
+  private_ecr_repository              = local.private_ecr_repository
+  eks_cluster_name                    = module.eks.eks_cluster_name
+  alb_controller_service_account_name = module.eks.alb_controller_service_account_name
+  ebs_csi_driver_service_account_name = module.eks.ebs_csi_driver_service_account_name
 
 }

@@ -23,3 +23,13 @@ variable "eks_cluster_name" {
   description = "Name of the EKS cluster"
   type        = string
 }
+
+variable "alb_controller_service_account_name" {
+  description = "Name of the service account for the AWS Load Balancer Controller"
+  type        = string
+}
+
+variable "ebs_csi_driver_service_account_name" {
+  description = "Name of the service account for the EBS CSI Driver"
+  type        = string
+}
