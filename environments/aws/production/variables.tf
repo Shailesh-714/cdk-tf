@@ -76,6 +76,12 @@ variable "admin_api_key" {
   sensitive   = true
 }
 
+variable "locker_enabled" {
+  description = "Flag to enable or disable the locker feature"
+  type        = bool
+  default     = false
+}
+
 variable "locker_public_key" {
   description = "Public key for the locker service"
   type        = string

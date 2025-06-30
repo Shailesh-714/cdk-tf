@@ -134,12 +134,20 @@ module "eks" {
 module "helm" {
   source = "../../../modules/aws/helm"
 
-  stack_name                          = var.stack_name
-  common_tags                         = local.common_tags
-  vpc_id                              = module.vpc.vpc_id
-  private_ecr_repository              = local.private_ecr_repository
-  eks_cluster_name                    = module.eks.eks_cluster_name
-  alb_controller_service_account_name = module.eks.alb_controller_service_account_name
-  ebs_csi_driver_service_account_name = module.eks.ebs_csi_driver_service_account_name
-
+  stack_name                           = var.stack_name
+  common_tags                          = local.common_tags
+  vpc_id                               = module.vpc.vpc_id
+  private_ecr_repository               = local.private_ecr_repository
+  eks_cluster_name                     = module.eks.eks_cluster_name
+  alb_controller_service_account_name  = module.eks.alb_controller_service_account_name
+  ebs_csi_driver_service_account_name  = module.eks.ebs_csi_driver_service_account_name
+  external_lb_security_group_id        = module.security.external_lb_security_group_id
+  internal_lb_security_group_id        = module.security.internal_lb_security_group_id
+  hyperswitch_kms_key_id               = module.security.hyperswitch_kms_key_id
+  hyperswitch_service_account_role_arn = module.eks.hyperswitch_service_account_role_arn
+  kms_secrets                          = module.security.kms_secrets
+  locker_enabled                       = var.locker_enabled
+  locker_public_key                    = var.locker_public_key
+  tenant_private_key                   = var.tenant_private_key
+  db_password                          = var.db_password
 }

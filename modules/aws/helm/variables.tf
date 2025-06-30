@@ -33,3 +33,49 @@ variable "ebs_csi_driver_service_account_name" {
   description = "Name of the service account for the EBS CSI Driver"
   type        = string
 }
+
+variable "external_lb_security_group_id" {
+  description = "ID of the External Load Balancer Security Group"
+  type        = string
+}
+
+variable "internal_lb_security_group_id" {
+  description = "ID of the Internal Load Balancer Security Group"
+  type        = string
+}
+
+variable "hyperswitch_kms_key_id" {
+  description = "ID of the KMS key used for Hyperswitch"
+  type        = string
+}
+
+variable "hyperswitch_service_account_role_arn" {
+  description = "ARN of the Hyperswitch service account role"
+  type        = string
+}
+
+variable "kms_secrets" {
+  description = "Map of KMS secrets used in Hyperswitch"
+  type        = map(string)
+}
+
+variable "locker_enabled" {
+  description = "Flag to enable or disable the locker feature"
+  type        = bool
+  default     = false
+}
+
+variable "locker_public_key" {
+  description = "Public key for the locker feature"
+  type        = string
+}
+
+variable "tenant_private_key" {
+  description = "Private key for the locker feature"
+  type        = string
+}
+
+variable "db_password" {
+  description = "Password for the RDS database"
+  type        = string
+}
