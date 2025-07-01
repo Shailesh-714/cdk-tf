@@ -71,3 +71,20 @@ resource "aws_lambda_function" "start_codebuild" {
     security_group_ids = [aws_security_group.lambda.id]
   }
 }
+
+# Lambda Invocation
+resource "aws_lambda_invocation" "start_codebuild" {
+  function_name = aws_lambda_function.start_codebuild.function_name
+
+  input = jsonencode({
+    RequestType        = "Create"
+    ResourceProperties = {}
+  })
+
+  lifecycle {
+    # Only trigger on creation
+    replace_triggered_by = [
+      aws_lambda_function.start_codebuild.source_code_hash
+    ]
+  }
+}

@@ -197,10 +197,6 @@ resource "helm_release" "istio_gateway" {
   ]
 }
 
-locals {
-  sdk_version = "0.121.2"
-}
-
 resource "helm_release" "hyperswitch_services" {
   name       = "hypers-v1"
   repository = "https://juspay.github.io/hyperswitch-helm/"
@@ -251,8 +247,8 @@ resource "helm_release" "hyperswitch_services" {
             image = "${var.private_ecr_repository}/juspaydotin/hyperswitch-control-center:v1.37.1"
           }
           sdk = {
-            host       = "https://${aws_cloudfront_distribution.sdk_distribution.domain_name}"
-            version    = local.sdk_version
+            host       = "https://${var.sdk_distribution_domain_name}"
+            version    = var.sdk_version
             subversion = "v1"
           }
         }
@@ -460,7 +456,7 @@ resource "helm_release" "hyperswitch_services" {
       }
 
       "hyperswitch-web" = {
-        enabled = true
+        enabled = false
 
         services = {
           router = {
@@ -503,10 +499,10 @@ resource "helm_release" "hyperswitch_services" {
         autoBuild = {
           forceBuild = false
           gitCloneParam = {
-            gitVersion = local.sdk_version
+            gitVersion = var.sdk_version
           }
           buildParam = {
-            envSdkUrl = "https://${aws_cloudfront_distribution.sdk_distribution.domain_name}"
+            envSdkUrl = "https://${var.sdk_distribution_domain_name}"
           }
           nginxConfig = {
             extraPath = "v1"

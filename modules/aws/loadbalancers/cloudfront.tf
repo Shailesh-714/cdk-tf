@@ -1,4 +1,4 @@
-resource "aws_cloudfront_distribution" "router_distribution" {
+resource "aws_cloudfront_distribution" "external_alb_distribution" {
   enabled = true
 
   origin {

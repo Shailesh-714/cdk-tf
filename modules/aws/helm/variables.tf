@@ -94,3 +94,13 @@ variable "elasticache_cluster_endpoint_address" {
   description = "ElastiCache Redis endpoint address"
   type        = string
 }
+
+variable "sdk_version" {
+  description = "Version of the SDK to be used"
+  type        = string
+}
+
+variable "sdk_distribution_domain_name" {
+  description = "Domain name of the SDK distribution"
+  type        = string
+}

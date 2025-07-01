@@ -1,76 +1,4 @@
 # ==========================================================
-#                    S3 Bucker for SDK
-# ==========================================================
-
-resource "aws_s3_bucket" "hyperswitch_sdk" {
-  bucket = "${var.stack_name}-sdk-${data.aws_caller_identity.current.account_id}-${data.aws_region.current.name}"
-
-  force_destroy = true
-
-  tags = merge(
-    var.common_tags,
-    {
-      Name = "${var.stack_name}-waf-logs"
-    }
-  )
-}
-
-resource "aws_s3_bucket_acl" "hyperswitch_sdk" {
-  bucket = aws_s3_bucket.hyperswitch_sdk.id
-  acl    = "private"
-}
-
-resource "aws_s3_bucket_public_access_block" "hyperswitch_sdk" {
-  bucket = aws_s3_bucket.hyperswitch_sdk.id
-
-  block_public_acls       = true
-  block_public_policy     = true
-  ignore_public_acls      = true
-  restrict_public_buckets = true
-}
-
-resource "aws_s3_bucket_cors_configuration" "hyperswitch_sdk" {
-  bucket = aws_s3_bucket.hyperswitch_sdk.id
-
-  cors_rule {
-    allowed_methods = ["GET", "HEAD"]
-    allowed_origins = ["*"]
-    allowed_headers = ["*"]
-    max_age_seconds = 3000
-  }
-
-}
-
-# ==========================================================
-#              Cloudfront Configuration for SDK
-# ==========================================================
-
-resource "aws_cloudfront_origin_access_identity" "sdk_oai" {
-  comment = "OAI for Hyperswitch SDK bucket"
-}
-
-resource "aws_s3_bucket_policy" "sdk_bucket_policy" {
-  bucket = aws_s3_bucket.hyperswitch_sdk.id
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Sid    = "AllowCloudFrontOAI"
-        Effect = "Allow"
-        Principal = {
-          AWS = aws_cloudfront_origin_access_identity.sdk_oai.iam_arn
-        }
-        Action   = "s3:GetObject"
-        Resource = "${aws_s3_bucket.hyperswitch_sdk.arn}/*"
-      }
-    ]
-  })
-
-  depends_on = [aws_s3_bucket_public_access_block.hyperswitch_sdk]
-}
-
-# ==========================================================
 #              Cloudfront Distribution for SDK
 # ==========================================================
 
@@ -145,9 +73,10 @@ resource "aws_cloudfront_distribution" "sdk_distribution" {
     cloudfront_default_certificate = true
   }
 
-  tags = {
-    Name = "sdkDistribution"
-  }
-
+  tags = merge(
+    var.common_tags, {
+      Name = "${var.stack_name}-sdk-distribution"
+    }
+  )
   depends_on = [aws_s3_bucket.hyperswitch_sdk]
 }

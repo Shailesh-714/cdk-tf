@@ -54,6 +54,9 @@ locals {
 
   # Private ECR repository for EKS
   private_ecr_repository = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${data.aws_region.current.name}.amazonaws.com"
+
+  # SDK version
+  sdk_version = "0.121.2"
 }
 
 # VPC configuration
@@ -148,6 +151,17 @@ module "loadbalancers" {
   # vpc_endpoints_security_group_id = module.security.vpc_endpoints_security_group_id
 }
 
+module "sdk" {
+  source = "../../../modules/aws/sdk"
+
+  stack_name                            = var.stack_name
+  common_tags                           = local.common_tags
+  vpc_id                                = module.vpc.vpc_id
+  subnet_ids                            = module.vpc.subnet_ids
+  sdk_version                           = local.sdk_version
+  external_alb_distribution_domain_name = module.loadbalancers.external_alb_distribution_domain_name
+}
+
 module "eks" {
   source = "../../../modules/aws/eks"
 
@@ -175,6 +189,7 @@ module "helm" {
   stack_name                           = var.stack_name
   common_tags                          = local.common_tags
   vpc_id                               = module.vpc.vpc_id
+  sdk_version                          = local.sdk_version
   private_ecr_repository               = local.private_ecr_repository
   eks_cluster_name                     = module.eks.eks_cluster_name
   alb_controller_service_account_name  = module.eks.alb_controller_service_account_name
@@ -191,4 +206,5 @@ module "helm" {
   rds_cluster_endpoint                 = module.rds.rds_cluster_endpoint
   rds_cluster_reader_endpoint          = module.rds.rds_cluster_reader_endpoint
   elasticache_cluster_endpoint_address = module.elasticache.elasticache_cluster_endpoint_address
+  sdk_distribution_domain_name         = module.sdk.sdk_distribution_domain_name
 }
