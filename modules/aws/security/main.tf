@@ -123,9 +123,9 @@ resource "aws_security_group" "external_lb_sg" {
 
   # No egress rules here - will be added as specific rules
 
-  tags = {
+  tags = merge(var.common_tags, {
     Name = "hyperswitch-external-lb-sg"
-  }
+  })
 }
 
 # Envoy Proxy Security Group
@@ -134,9 +134,9 @@ resource "aws_security_group" "envoy_sg" {
   description = "Security group for Envoy proxy instances"
   vpc_id      = var.vpc_id
 
-  tags = {
+  tags = merge(var.common_tags, {
     Name = "hyperswitch-envoy-sg"
-  }
+  })
 }
 
 # Internal Load Balancer Security Group
@@ -145,10 +145,33 @@ resource "aws_security_group" "internal_lb_sg" {
   description = "Security group for internal load balancer"
   vpc_id      = var.vpc_id
 
-  tags = {
+  tags = merge(var.common_tags, {
     Name = "hyperswitch-internal-lb-sg"
-  }
+  })
 }
+
+# RDS Security Group
+resource "aws_security_group" "rds_sg" {
+  name        = "${var.stack_name}-db-sg"
+  description = "Security group for RDS database"
+  vpc_id      = var.vpc_id
+
+  tags = merge(var.common_tags, {
+    Name = "${var.stack_name}-db-sg"
+  })
+}
+
+# Security Group for ElastiCache
+resource "aws_security_group" "elasticache_sg" {
+  name        = "${var.stack_name}-elasticache-SG"
+  description = "Security group for Hyperswitch ElastiCache"
+  vpc_id      = var.vpc_id
+
+  tags = merge(var.common_tags, {
+    Name = "${var.stack_name}-elasticache-SG"
+  })
+}
+
 
 # ==========================================================
 #                   Security Group Rules
@@ -291,6 +314,7 @@ resource "aws_iam_role" "kms_lambda" {
   })
 }
 
+
 # ==========================================================
 #                       IAM Policies
 # ==========================================================
@@ -409,6 +433,7 @@ resource "aws_iam_role_policy" "eks_cloudwatch_custom" {
   })
 }
 
+
 # ==========================================================
 #                  KMS Keys and Aliases
 # ==========================================================
@@ -470,5 +495,25 @@ resource "aws_secretsmanager_secret_version" "hyperswitch" {
     region             = data.aws_region.current.name
     locker_public_key  = var.locker_public_key
     tenant_private_key = var.tenant_private_key
+  })
+}
+
+# RDS Database Secret
+resource "aws_secretsmanager_secret" "db_master" {
+  name        = "hypers-db-master-user-secret"
+  description = "Database master user credentials"
+
+  tags = merge(var.common_tags, {
+    Name = "hypers-db-master-user-secret"
+
+  })
+}
+
+resource "aws_secretsmanager_secret_version" "db_master" {
+  secret_id = aws_secretsmanager_secret.db_master.id
+  secret_string = jsonencode({
+    dbname   = var.db_name
+    username = var.db_user
+    password = var.db_password
   })
 }

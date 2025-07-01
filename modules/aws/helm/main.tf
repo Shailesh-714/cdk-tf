@@ -404,7 +404,7 @@ resource "helm_release" "hyperswitch_services" {
         externalPostgresql = {
           enabled = true
           primary = {
-            host = aws_rds_cluster.main.endpoint
+            host = var.rds_cluster_endpoint
             auth = {
               username      = "db_user"
               database      = "hyperswitch"
@@ -413,7 +413,7 @@ resource "helm_release" "hyperswitch_services" {
             }
           }
           readOnly = {
-            host = aws_rds_cluster.main.reader_endpoint
+            host = var.rds_cluster_reader_endpoint
             auth = {
               username      = "db_user"
               database      = "hyperswitch"
@@ -425,7 +425,7 @@ resource "helm_release" "hyperswitch_services" {
 
         externalRedis = {
           enabled = true
-          host    = aws_elasticache_cluster.main.cache_nodes[0].address
+          host    = var.elasticache_cluster_endpoint_address
           port    = 6379
         }
 

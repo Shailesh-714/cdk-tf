@@ -86,3 +86,8 @@ notes:
 - IMPORTANT: stack name should be in lower and only "-" is allowed
 - search for [0] and verify belongs to count or not
 - keymanager construct is still pending
+- havent added jumpboxes
+- why elasticache has public subnets ?
+- should i use elasticache replication group instead?
+
+- i am starting to club all the resources needed for a component in same module (important)

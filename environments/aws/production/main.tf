@@ -80,6 +80,8 @@ module "security" {
   vpc_cidr      = local.vpc_cidr
   vpn_ips       = var.vpn_ips
 
+  db_user            = var.db_user
+  db_name            = var.db_name
   db_password        = var.db_password
   jwt_secret         = var.jwt_secret
   master_key         = var.master_key
@@ -98,6 +100,40 @@ module "endpoints" {
   private_with_nat_route_table_ids = module.vpc.private_with_nat_route_table_ids
   subnet_ids                       = module.vpc.subnet_ids
   vpc_endpoints_security_group_id  = module.security.vpc_endpoints_security_group_id
+}
+
+module "rds" {
+  source = "../../../modules/aws/rds"
+
+  stack_name            = var.stack_name
+  common_tags           = local.common_tags
+  vpc_id                = module.vpc.vpc_id
+  subnet_ids            = module.vpc.subnet_ids
+  rds_security_group_id = module.security.rds_security_group_id
+  db_user               = var.db_user
+  db_name               = var.db_name
+  db_password           = var.db_password
+  db_port               = var.db_port
+}
+
+module "elasticache" {
+  source = "../../../modules/aws/elasticache"
+
+  stack_name                    = var.stack_name
+  common_tags                   = local.common_tags
+  vpc_id                        = module.vpc.vpc_id
+  subnet_ids                    = module.vpc.subnet_ids
+  elasticache_security_group_id = module.security.elasticache_security_group_id
+
+}
+
+module "dockertoecr" {
+  source = "../../../modules/aws/dockertoecr"
+
+  stack_name  = var.stack_name
+  common_tags = local.common_tags
+  vpc_id      = module.vpc.vpc_id
+  subnet_ids  = module.vpc.subnet_ids
 }
 
 module "loadbalancers" {
@@ -129,6 +165,8 @@ module "eks" {
   eks_node_group_role_arn       = module.security.eks_node_group_role_arn
   kms_key_arn                   = module.security.hyperswitch_kms_key_arn
   log_retention_days            = var.log_retention_days
+  rds_security_group_id         = module.security.rds_security_group_id
+  elasticache_security_group_id = module.security.elasticache_security_group_id
 }
 
 module "helm" {
@@ -150,4 +188,7 @@ module "helm" {
   locker_public_key                    = var.locker_public_key
   tenant_private_key                   = var.tenant_private_key
   db_password                          = var.db_password
+  rds_cluster_endpoint                 = module.rds.rds_cluster_endpoint
+  rds_cluster_reader_endpoint          = module.rds.rds_cluster_reader_endpoint
+  elasticache_cluster_endpoint_address = module.elasticache.elasticache_cluster_endpoint_address
 }

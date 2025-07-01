@@ -133,9 +133,6 @@ resource "aws_cloudfront_distribution" "sdk_distribution" {
     compress               = true
   }
 
-  # Price class
-  price_class = "PriceClass_All"
-
   # Restrictions
   restrictions {
     geo_restriction {

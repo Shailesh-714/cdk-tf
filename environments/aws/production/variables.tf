@@ -52,10 +52,26 @@ variable "log_retention_days" {
   default     = 30
 }
 
+variable "db_user" {
+  description = "Username for the database"
+  type        = string
+}
+
+variable "db_name" {
+  description = "Name of the database"
+  type        = string
+}
+
 variable "db_password" {
   description = "Password for the database"
   type        = string
   sensitive   = true
+}
+
+variable "db_port" {
+  description = "Port for the database"
+  type        = number
+  default     = 5432
 }
 
 variable "jwt_secret" {

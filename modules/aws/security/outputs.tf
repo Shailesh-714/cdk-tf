@@ -28,6 +28,16 @@ output "internal_lb_security_group_id" {
   value       = aws_security_group.internal_lb_sg.id
 }
 
+output "rds_security_group_id" {
+  description = "ID of the RDS Security Group"
+  value       = aws_security_group.rds_sg.id
+}
+
+output "elasticache_security_group_id" {
+  description = "ID of the ElastiCache Security Group"
+  value       = aws_security_group.elasticache_sg.id
+}
+
 output "hyperswitch_kms_key_id" {
   description = "ID of the KMS key"
   value       = aws_kms_key.hyperswitch_kms_key.id

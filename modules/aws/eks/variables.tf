@@ -70,3 +70,13 @@ variable "log_retention_days" {
   type        = number
 }
 
+variable "rds_security_group_id" {
+  description = "ID of the RDS Security Group"
+  type        = string
+}
+
+variable "elasticache_security_group_id" {
+  description = "ID of the ElastiCache Security Group"
+  type        = string
+
+}

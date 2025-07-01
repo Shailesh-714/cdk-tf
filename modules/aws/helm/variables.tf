@@ -79,3 +79,18 @@ variable "db_password" {
   description = "Password for the RDS database"
   type        = string
 }
+
+variable "rds_cluster_endpoint" {
+  description = "RDS cluster writer endpoint"
+  type        = string
+}
+
+variable "rds_cluster_reader_endpoint" {
+  description = "RDS cluster reader endpoint"
+  type        = string
+}
+
+variable "elasticache_cluster_endpoint_address" {
+  description = "ElastiCache Redis endpoint address"
+  type        = string
+}
