@@ -24,6 +24,16 @@ variable "eks_cluster_name" {
   type        = string
 }
 
+variable "eks_cluster_endpoint" {
+  description = "Endpoint of the EKS cluster"
+  type        = string
+}
+
+variable "eks_cluster_ca_certificate" {
+  description = "CA certificate of the EKS cluster"
+  type        = string
+}
+
 variable "alb_controller_service_account_name" {
   description = "Name of the service account for the AWS Load Balancer Controller"
   type        = string

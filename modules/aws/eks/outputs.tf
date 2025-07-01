@@ -1,7 +1,16 @@
 output "eks_cluster_name" {
   description = "The name of the EKS cluster"
   value       = aws_eks_cluster.main.name
+}
 
+output "eks_cluster_endpoint" {
+  description = "The endpoint of the EKS cluster"
+  value       = aws_eks_cluster.main.endpoint
+}
+
+output "eks_cluster_ca_certificate" {
+  description = "The CA certificate of the EKS cluster"
+  value       = aws_eks_cluster.main.certificate_authority[0].data
 }
 
 output "hyperswitch_service_account_role_arn" {

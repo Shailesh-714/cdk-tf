@@ -192,6 +192,8 @@ module "helm" {
   sdk_version                          = local.sdk_version
   private_ecr_repository               = local.private_ecr_repository
   eks_cluster_name                     = module.eks.eks_cluster_name
+  eks_cluster_endpoint                 = module.eks.eks_cluster_endpoint
+  eks_cluster_ca_certificate           = module.eks.eks_cluster_ca_certificate
   alb_controller_service_account_name  = module.eks.alb_controller_service_account_name
   ebs_csi_driver_service_account_name  = module.eks.ebs_csi_driver_service_account_name
   external_lb_security_group_id        = module.security.external_lb_security_group_id

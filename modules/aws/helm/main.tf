@@ -8,18 +8,14 @@ data "aws_caller_identity" "current" {}
 #                  Helm Provider Config
 # ==========================================================
 
-data "aws_eks_cluster" "main" {
-  name = var.eks_cluster_name
-}
-
 data "aws_eks_cluster_auth" "main" {
   name = var.eks_cluster_name
 }
 
 provider "helm" {
   kubernetes = {
-    host                   = data.aws_eks_cluster.main.endpoint
-    cluster_ca_certificate = base64decode(data.aws_eks_cluster.main.certificate_authority[0].data)
+    host                   = var.eks_cluster_endpoint
+    cluster_ca_certificate = base64decode(var.eks_cluster_ca_certificate)
     token                  = data.aws_eks_cluster_auth.main.token
   }
 }
@@ -39,7 +35,7 @@ resource "helm_release" "alb_controller" {
 
   values = [
     yamlencode({
-      clusterName = data.aws_eks_cluster.main.name
+      clusterName = var.eks_cluster_name
 
       image = {
         repository = "${var.private_ecr_repository}/eks/aws-load-balancer-controller"
@@ -65,7 +61,6 @@ resource "helm_release" "ebs_csi_driver" {
   repository = "https://kubernetes-sigs.github.io/aws-ebs-csi-driver"
   chart      = "aws-ebs-csi-driver"
   namespace  = "kube-system"
-  version    = "1.41.0" # optional: chart version if you want to pin it
   wait       = true
 
   values = [
@@ -197,6 +192,7 @@ resource "helm_release" "istio_gateway" {
   ]
 }
 
+# Helm release for Hyperswitch services
 resource "helm_release" "hyperswitch_services" {
   name       = "hypers-v1"
   repository = "https://juspay.github.io/hyperswitch-helm/"
@@ -312,8 +308,8 @@ resource "helm_release" "hyperswitch_services" {
             forex_fallback_api_key                        = var.kms_secrets["kms_forex_fallback_api_key"]
             apple_pay_ppc                                 = var.kms_secrets["apple_pay_ppc"]
             apple_pay_ppc_key                             = var.kms_secrets["apple_pay_ppc_key"]
-            apple_pay_merchant_cert                       = var.kms_secrets["apple_pay_merchant_cert"]
-            apple_pay_merchant_cert_key                   = var.kms_secrets["apple_pay_merchant_cert_key"]
+            apple_pay_merchant_cert                       = var.kms_secrets["apple_pay_merchant_conf_merchant_cert"]
+            apple_pay_merchant_cert_key                   = var.kms_secrets["apple_pay_merchant_conf_merchant_cert_key"]
             apple_pay_merchant_conf_merchant_cert         = var.kms_secrets["apple_pay_merchant_conf_merchant_cert"]
             apple_pay_merchant_conf_merchant_cert_key     = var.kms_secrets["apple_pay_merchant_conf_merchant_cert_key"]
             apple_pay_merchant_conf_merchant_id           = var.kms_secrets["apple_pay_merchant_conf_merchant_id"]
@@ -514,6 +510,66 @@ resource "helm_release" "hyperswitch_services" {
 
   depends_on = [
     helm_release.alb_controller
+  ]
+}
+
+resource "helm_release" "traffic_control" {
+  name       = "hs-istio"
+  chart      = "hyperswitch-istio"
+  repository = "https://juspay.github.io/hyperswitch-helm/charts/incubator/hyperswitch-istio"
+
+  values = [
+    yamlencode({
+      image = {
+        version = "v1o107o0"
+      }
+      ingress = {
+        enabled   = true
+        className = "alb"
+        annotations = {
+          "alb.ingress.kubernetes.io/backend-protocol"             = "HTTP"
+          "alb.ingress.kubernetes.io/backend-protocol-version"     = "HTTP1"
+          "alb.ingress.kubernetes.io/group.name"                   = "hyperswitch-istio-app-alb-ingress-group"
+          "alb.ingress.kubernetes.io/healthcheck-interval-seconds" = "5"
+          "alb.ingress.kubernetes.io/healthcheck-path"             = "/healthz/ready"
+          "alb.ingress.kubernetes.io/healthcheck-port"             = "15021"
+          "alb.ingress.kubernetes.io/healthcheck-protocol"         = "HTTP"
+          "alb.ingress.kubernetes.io/healthcheck-timeout-seconds"  = "2"
+          "alb.ingress.kubernetes.io/healthy-threshold-count"      = "5"
+          "alb.ingress.kubernetes.io/ip-address-type"              = "ipv4"
+          "alb.ingress.kubernetes.io/listen-ports"                 = "[{\"HTTP\": 80}]"
+          "alb.ingress.kubernetes.io/load-balancer-attributes"     = "routing.http.drop_invalid_header_fields.enabled=true,routing.http.xff_client_port.enabled=true,routing.http.preserve_host_header.enabled=true"
+          "alb.ingress.kubernetes.io/scheme"                       = "internal"
+          "alb.ingress.kubernetes.io/security-groups"              = var.internal_lb_security_group_id
+          "alb.ingress.kubernetes.io/subnets"                      = var.subnet_ids["service_layer_zone"]
+          "alb.ingress.kubernetes.io/target-type"                  = "ip"
+          "alb.ingress.kubernetes.io/unhealthy-threshold-count"    = "3"
+        }
+        hosts = {
+          paths = [
+            {
+              path     = "/"
+              pathType = "Prefix"
+              port     = 80
+              name     = "istio-ingress"
+            },
+            {
+              path     = "/healthz/ready"
+              pathType = "Prefix"
+              port     = 15021
+              name     = "istio-ingress"
+            }
+          ]
+        }
+      }
+    })
+  ]
+
+  depends_on = [
+    helm_release.istio_base,
+    helm_release.istiod,
+    helm_release.istio_gateway,
+    helm_release.hyperswitch_services
   ]
 }
 
