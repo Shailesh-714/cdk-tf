@@ -513,6 +513,7 @@ resource "helm_release" "hyperswitch_services" {
   ]
 }
 
+# Helm release for Hyperswitch Istio chart
 resource "helm_release" "traffic_control" {
   name       = "hs-istio"
   chart      = "hyperswitch-istio"

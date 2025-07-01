@@ -14,6 +14,11 @@ variable "vpc_id" {
   type        = string
 }
 
+variable "subnet_ids" {
+  description = "List of subnet IDs for the RDS instance"
+  type        = map(list(string))
+}
+
 variable "private_ecr_repository" {
   description = "ECR repository for private images"
   type        = string

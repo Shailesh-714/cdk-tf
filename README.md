@@ -93,3 +93,5 @@ notes:
 - i am starting to club all the resources needed for a component in same module (important)
 
 - when should sdk build lambda and docker to ecr lambda triggered?
+
+- log-stack.ts is pending (open-search-service)
