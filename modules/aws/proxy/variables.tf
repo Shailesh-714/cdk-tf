@@ -39,6 +39,11 @@ variable "external_alb_security_group_id" {
   type        = string
 }
 
+variable "eks_cluster_security_group_id" {
+  description = "ID of the EKS cluster security group"
+  type        = string
+}
+
 variable "internal_alb_domain_name" {
   description = "ID of the Istio Internal ALB Security Group"
   type        = string

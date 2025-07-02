@@ -208,6 +208,7 @@ module "proxy" {
   squid_image_ami                       = var.squid_image_ami
   internal_alb_security_group_id        = module.helm.internal_alb_security_group_id
   external_alb_security_group_id        = module.loadbalancers.external_alb_security_group_id
+  eks_cluster_security_group_id         = module.eks.eks_cluster_security_group_id
   internal_alb_domain_name              = module.helm.internal_alb_dns_name
   external_alb_distribution_domain_name = module.loadbalancers.external_alb_distribution_domain_name
   envoy_target_group_arn                = module.loadbalancers.envoy_target_group_arn
