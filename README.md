@@ -95,3 +95,4 @@ notes:
 - when should sdk build lambda and docker to ecr lambda triggered?
 
 - log-stack.ts is pending (open-search-service)
+- add input variables as trigger for encryption lambda

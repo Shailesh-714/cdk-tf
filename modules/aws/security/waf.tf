@@ -604,9 +604,22 @@ resource "aws_s3_bucket" "server_access_logs" {
   )
 }
 
+resource "aws_s3_bucket_ownership_controls" "server_access_logs" {
+  bucket = aws_s3_bucket.server_access_logs.id
+
+  rule {
+    object_ownership = "BucketOwnerPreferred"
+  }
+}
+
 resource "aws_s3_bucket_acl" "server_access_logs" {
   bucket = aws_s3_bucket.server_access_logs.id
   acl    = "private"
+
+  depends_on = [
+    aws_s3_bucket_ownership_controls.server_access_logs,
+    aws_s3_bucket_public_access_block.server_access_logs,
+  ]
 }
 
 resource "aws_s3_bucket_public_access_block" "server_access_logs" {
@@ -672,9 +685,22 @@ resource "aws_s3_bucket" "waf_logs" {
   )
 }
 
+resource "aws_s3_bucket_ownership_controls" "waf_logs" {
+  bucket = aws_s3_bucket.waf_logs.id
+
+  rule {
+    object_ownership = "BucketOwnerPreferred"
+  }
+}
+
 resource "aws_s3_bucket_acl" "waf_logs" {
   bucket = aws_s3_bucket.waf_logs.id
   acl    = "private"
+
+  depends_on = [
+    aws_s3_bucket_ownership_controls.waf_logs,
+    aws_s3_bucket_public_access_block.waf_logs,
+  ]
 }
 
 resource "aws_s3_bucket_public_access_block" "waf_logs" {

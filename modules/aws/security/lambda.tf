@@ -32,7 +32,7 @@ resource "aws_lambda_invocation" "kms_encrypt" {
   input = jsonencode({
     RequestType = "Create"
     ResourceProperties = {
-      Trigger = timestamp() # Forces re-run if needed
+      # Trigger = timestamp() # Forces re-run if needed
     }
   })
 

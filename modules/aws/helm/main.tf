@@ -194,7 +194,7 @@ resource "helm_release" "istio_gateway" {
 
 # Helm release for Hyperswitch services
 resource "helm_release" "hyperswitch_services" {
-  name       = "hypers-v1"
+  name       = var.stack_name
   repository = "https://juspay.github.io/hyperswitch-helm/"
   chart      = "hyperswitch-stack"
   version    = "0.2.4"
@@ -484,7 +484,7 @@ resource "helm_release" "traffic_control" {
           "alb.ingress.kubernetes.io/load-balancer-attributes"     = "routing.http.drop_invalid_header_fields.enabled=true,routing.http.xff_client_port.enabled=true,routing.http.preserve_host_header.enabled=true"
           "alb.ingress.kubernetes.io/scheme"                       = "internal"
           "alb.ingress.kubernetes.io/security-groups"              = aws_security_group.internal_alb_sg.id
-          "alb.ingress.kubernetes.io/subnets"                      = var.subnet_ids["istio_lb_transit_zone"]
+          "alb.ingress.kubernetes.io/subnets"                      = join(",", var.subnet_ids["istio_lb_transit_zone"])
           "alb.ingress.kubernetes.io/target-type"                  = "ip"
           "alb.ingress.kubernetes.io/unhealthy-threshold-count"    = "3"
         }
@@ -565,16 +565,17 @@ resource "aws_s3_bucket_policy" "loki_logs_rw" {
 
 # Loki Helm release
 resource "helm_release" "loki_stack" {
-  name       = "loki"
-  chart      = "loki-stack"
-  repository = "https://grafana.github.io/helm-charts/"
-  namespace  = "loki"
-
+  name             = "loki"
+  chart            = "loki-stack"
+  repository       = "https://grafana.github.io/helm-charts/"
+  namespace        = "loki"
+  create_namespace = true
+  timeout          = 900
   values = [
     yamlencode({
       grafana = {
         global = {
-          imageRegisrty = var.private_ecr_repository
+          imageRegistry = var.private_ecr_repository
         }
         image = {
           repository = "${var.private_ecr_repository}/grafana/grafana"
@@ -613,7 +614,7 @@ resource "helm_release" "loki_stack" {
             "alb.ingress.kubernetes.io/scheme"                   = "internet-facing"
             "alb.ingress.kubernetes.io/tags"                     = "stack=hyperswitch-lb"
             "alb.ingress.kubernetes.io/security-groups"          = aws_security_group.grafana_ingress_lb_sg.id
-            "alb.ingress.kubernetes.io/subnets"                  = var.subnet_ids["external_incoming_zone"]
+            "alb.ingress.kubernetes.io/subnets"                  = join(",", var.subnet_ids["external_incoming_zone"])
             "alb.ingress.kubernetes.io/target-type"              = "ip"
           }
           extraPaths = [
@@ -636,22 +637,15 @@ resource "helm_release" "loki_stack" {
 
       loki = {
         enabled = true
-        global = {
-          imageRegisrty = var.private_ecr_repository
-        }
         serviceAccount = {
           annotations = {
             "eks.amazonaws.com/role-arn" = var.grafana_service_account_role_arn
           }
         }
-        nodeSelector = {
-          "node-type" = "monitoring"
-        }
         config = {
           limits_config = {
-            enforce_metric_name         = false
             max_entries_limit_per_query = 5000
-            max_query_lookback          = "90d"
+            max_query_length            = "90d" # Renamed from max_query_lookback
             reject_old_samples          = true
             reject_old_samples_max_age  = "168h"
             retention_period            = "100d"
@@ -682,24 +676,9 @@ resource "helm_release" "loki_stack" {
             ]
           }
           storage_config = {
-            boltdb_shipper = {
-              active_index_directory = "/data/loki/boltdb-shipper-active"
-              cache_location         = "/data/loki/boltdb-shipper-cache"
-              cache_ttl              = "24h"
-              shared_store           = "filesystem"
-            }
-            filesystem = {
-              directory = "/data/loki/chunks"
-            }
-            hedging = {
-              at             = "250ms"
-              max_per_second = 20
-              up_to          = 3
-            }
             tsdb_shipper = {
               active_index_directory = "/data/tsdb-index"
               cache_location         = "/data/tsdb-cache"
-              shared_store           = "s3"
             }
             aws = {
               bucketnames = aws_s3_bucket.loki_logs.bucket
@@ -707,16 +686,13 @@ resource "helm_release" "loki_stack" {
             }
           }
         }
-        image = {
-          repository = "${var.private_ecr_repository}/grafana/loki"
-          tag        = "latest"
-        }
       }
+
 
       promtail = {
         enabled = true
         global = {
-          imageRegisrty = var.private_ecr_repository
+          imageRegistry = var.private_ecr_repository
         }
         image = {
           registry   = var.private_ecr_repository

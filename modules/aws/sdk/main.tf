@@ -21,9 +21,12 @@ resource "aws_s3_bucket" "hyperswitch_sdk" {
   )
 }
 
-resource "aws_s3_bucket_acl" "hyperswitch_sdk" {
+resource "aws_s3_bucket_ownership_controls" "hyperswitch_sdk" {
   bucket = aws_s3_bucket.hyperswitch_sdk.id
-  acl    = "private"
+
+  rule {
+    object_ownership = "BucketOwnerPreferred"
+  }
 }
 
 resource "aws_s3_bucket_public_access_block" "hyperswitch_sdk" {
@@ -33,6 +36,16 @@ resource "aws_s3_bucket_public_access_block" "hyperswitch_sdk" {
   block_public_policy     = true
   ignore_public_acls      = true
   restrict_public_buckets = true
+}
+
+resource "aws_s3_bucket_acl" "hyperswitch_sdk" {
+  bucket = aws_s3_bucket.hyperswitch_sdk.id
+  acl    = "private"
+
+  depends_on = [
+    aws_s3_bucket_ownership_controls.hyperswitch_sdk,
+    aws_s3_bucket_public_access_block.hyperswitch_sdk,
+  ]
 }
 
 resource "aws_s3_bucket_cors_configuration" "hyperswitch_sdk" {

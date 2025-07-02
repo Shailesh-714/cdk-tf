@@ -231,6 +231,10 @@ resource "aws_secretsmanager_secret" "hyperswitch" {
   name        = "${var.stack_name}-kms-secrets"
   description = "KMS encryptable secrets for Hyperswitch"
 
+  # only for development purposes
+  recovery_window_in_days        = 0
+  force_overwrite_replica_secret = true
+
   kms_key_id = aws_kms_key.hyperswitch_kms_key.key_id
 }
 
@@ -251,11 +255,15 @@ resource "aws_secretsmanager_secret_version" "hyperswitch" {
 
 # RDS Database Secret
 resource "aws_secretsmanager_secret" "db_master" {
-  name        = "hypers-db-master-user-secret"
+  name        = "${var.stack_name}-db-master-user-secret"
   description = "Database master user credentials"
 
+  # only for development purposes
+  recovery_window_in_days        = 0
+  force_overwrite_replica_secret = true
+
   tags = merge(var.common_tags, {
-    Name = "hypers-db-master-user-secret"
+    Name = "${var.stack_name}-db-master-user-secret"
 
   })
 }
