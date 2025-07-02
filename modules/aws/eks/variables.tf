@@ -45,11 +45,6 @@ variable "control_plane_subnet_ids" {
   type        = list(string)
 }
 
-variable "eks_cluster_security_group_id" {
-  description = "ID of the EKS Cluster Security Group"
-  type        = string
-}
-
 variable "eks_cluster_role_arn" {
   description = "ARN of the EKS Cluster IAM Role"
   type        = string

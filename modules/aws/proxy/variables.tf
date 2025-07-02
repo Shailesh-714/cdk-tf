@@ -10,7 +10,7 @@ variable "common_tags" {
 }
 
 variable "vpc_id" {
-  description = "ID of the VPC where the RDS instance will be deployed"
+  description = "ID of the VPC where the EKS cluster will be deployed"
   type        = string
 }
 
@@ -18,4 +18,3 @@ variable "subnet_ids" {
   description = "List of subnet IDs for the RDS instance"
   type        = map(list(string))
 }
-

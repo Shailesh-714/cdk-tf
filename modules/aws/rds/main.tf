@@ -20,7 +20,7 @@ resource "aws_rds_cluster" "aurora" {
   master_password = var.db_password
   port            = var.db_port
 
-  vpc_security_group_ids = [var.rds_security_group_id]
+  vpc_security_group_ids = [aws_security_group.rds_sg.id]
   db_subnet_group_name   = aws_db_subnet_group.aurora.name
 
   storage_encrypted = true

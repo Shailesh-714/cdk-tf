@@ -16,7 +16,6 @@ resource "aws_eks_cluster" "main" {
     endpoint_private_access = true
     endpoint_public_access  = true
     public_access_cidrs     = length(var.vpn_ips) > 0 ? var.vpn_ips : ["0.0.0.0/0"]
-    # security_group_ids      = [var.eks_cluster_security_group_id]
   }
 
   encryption_config {
@@ -349,28 +348,4 @@ resource "aws_eks_node_group" "hs_zk_compute_nodegroup" {
   tags = merge(var.common_tags, {
     Name = "zookeeper-compute"
   })
-}
-
-# ==========================================================
-#              RDS and Elasticache Connections
-# ==========================================================
-
-resource "aws_security_group_rule" "rds_ingress_from_eks" {
-  type                     = "ingress"
-  from_port                = 5432 # PostgreSQL port
-  to_port                  = 5432
-  protocol                 = "tcp"
-  source_security_group_id = aws_eks_cluster.main.vpc_config[0].cluster_security_group_id
-  security_group_id        = var.rds_security_group_id
-  description              = "Allow EKS cluster nodes and pods to connect to RDS PostgreSQL"
-}
-
-resource "aws_security_group_rule" "elasticache_ingress_from_eks" {
-  type                     = "ingress"
-  from_port                = 6379
-  to_port                  = 6379
-  protocol                 = "tcp"
-  source_security_group_id = aws_eks_cluster.main.vpc_config[0].cluster_security_group_id
-  security_group_id        = var.elasticache_security_group_id
-  description              = "Allow Redis access from EKS cluster"
 }

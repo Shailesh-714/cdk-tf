@@ -208,10 +208,6 @@ resource "helm_release" "hyperswitch_services" {
     yamlencode({
       clusterName = var.eks_cluster_name
 
-      loadBalancer = {
-        targetSecurityGroup = var.internal_lb_security_group_id
-      }
-
       prometheus = {
         enabled = false
       }
@@ -221,9 +217,6 @@ resource "helm_release" "hyperswitch_services" {
       }
 
       "hyperswitch-app" = {
-        loadBalancer = {
-          targetSecurityGroup = var.internal_lb_security_group_id
-        }
 
         redis = {
           enabled = false
@@ -453,57 +446,6 @@ resource "helm_release" "hyperswitch_services" {
 
       "hyperswitch-web" = {
         enabled = false
-
-        services = {
-          router = {
-            host = "http://localhost:8080"
-          }
-          sdkDemo = {
-            image                     = "juspaydotin/hyperswitch-web:v0.121.2"
-            hyperswitchPublishableKey = "pub_key"
-            hyperswitchSecretKey      = "secret_key"
-          }
-        }
-
-        loadBalancer = {
-          targetSecurityGroup = var.internal_lb_security_group_id
-        }
-
-        ingress = {
-          className = "alb"
-          annotations = {
-            "alb.ingress.kubernetes.io/backend-protocol"         = "HTTP"
-            "alb.ingress.kubernetes.io/backend-protocol-version" = "HTTP1"
-            "alb.ingress.kubernetes.io/group.name"               = "hyperswitch-web-alb-ingress-group"
-            "alb.ingress.kubernetes.io/ip-address-type"          = "ipv4"
-            "alb.ingress.kubernetes.io/listen-ports"             = "[{\"HTTP\": 80}]"
-            "alb.ingress.kubernetes.io/load-balancer-name"       = "hyperswitch-web"
-            "alb.ingress.kubernetes.io/scheme"                   = "internet-facing"
-            "alb.ingress.kubernetes.io/security-groups"          = var.internal_lb_security_group_id
-            "alb.ingress.kubernetes.io/tags"                     = "stack=hyperswitch-lb"
-            "alb.ingress.kubernetes.io/target-type"              = "ip"
-          }
-          hosts = [{
-            host = ""
-            paths = [{
-              path     = "/"
-              pathType = "Prefix"
-            }]
-          }]
-        }
-
-        autoBuild = {
-          forceBuild = false
-          gitCloneParam = {
-            gitVersion = var.sdk_version
-          }
-          buildParam = {
-            envSdkUrl = "https://${var.sdk_distribution_domain_name}"
-          }
-          nginxConfig = {
-            extraPath = "v1"
-          }
-        }
       }
     })
   ]
@@ -541,8 +483,8 @@ resource "helm_release" "traffic_control" {
           "alb.ingress.kubernetes.io/listen-ports"                 = "[{\"HTTP\": 80}]"
           "alb.ingress.kubernetes.io/load-balancer-attributes"     = "routing.http.drop_invalid_header_fields.enabled=true,routing.http.xff_client_port.enabled=true,routing.http.preserve_host_header.enabled=true"
           "alb.ingress.kubernetes.io/scheme"                       = "internal"
-          "alb.ingress.kubernetes.io/security-groups"              = var.internal_lb_security_group_id
-          "alb.ingress.kubernetes.io/subnets"                      = var.subnet_ids["service_layer_zone"]
+          "alb.ingress.kubernetes.io/security-groups"              = aws_security_group.internal_lb_sg.id
+          "alb.ingress.kubernetes.io/subnets"                      = var.subnet_ids["istio_lb_transit_zone"]
           "alb.ingress.kubernetes.io/target-type"                  = "ip"
           "alb.ingress.kubernetes.io/unhealthy-threshold-count"    = "3"
         }

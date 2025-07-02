@@ -3,7 +3,7 @@ resource "aws_lb" "external_alb" {
   name               = "${var.stack_name}-external-alb"
   internal           = false
   load_balancer_type = "application"
-  security_groups    = [var.external_lb_security_group_id]
+  security_groups    = [aws_security_group.external_lb_sg.id]
   subnets            = var.subnet_ids["external_incoming_zone"]
 
   enable_deletion_protection = false

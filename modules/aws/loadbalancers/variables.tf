@@ -14,14 +14,15 @@ variable "common_tags" {
   default     = {}
 }
 
+variable "vpn_ips" {
+  description = "List of VPN IPs to allow access"
+  type        = list(string)
+  default     = []
+}
+
 variable "subnet_ids" {
   description = "List of subnet IDs for the load balancers"
   type        = map(list(string))
-}
-
-variable "external_lb_security_group_id" {
-  description = "Security Group ID for the external load balancer"
-  type        = string
 }
 
 variable "waf_web_acl_arn" {

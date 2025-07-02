@@ -1,41 +1,6 @@
-output "eks_cluster_security_group_id" {
-  description = "ID of the EKS Cluster Security Group"
-  value       = aws_security_group.eks_cluster.id
-}
-
-output "eks_nodes_security_group_id" {
-  description = "ID of the EKS Worker Nodes Security Group"
-  value       = aws_security_group.eks_nodes.id
-}
-
-output "vpc_endpoints_security_group_id" {
-  description = "ID of the VPC Endpoints Security Group"
-  value       = aws_security_group.vpc_endpoints.id
-}
-
-output "external_lb_security_group_id" {
-  description = "ID of the External Load Balancer Security Group"
-  value       = aws_security_group.external_lb_sg.id
-}
-
 output "envoy_security_group_id" {
   description = "ID of the Envoy Security Group"
   value       = aws_security_group.envoy_sg.id
-}
-
-output "internal_lb_security_group_id" {
-  description = "ID of the Internal Load Balancer Security Group"
-  value       = aws_security_group.internal_lb_sg.id
-}
-
-output "rds_security_group_id" {
-  description = "ID of the RDS Security Group"
-  value       = aws_security_group.rds_sg.id
-}
-
-output "elasticache_security_group_id" {
-  description = "ID of the ElastiCache Security Group"
-  value       = aws_security_group.elasticache_sg.id
 }
 
 output "hyperswitch_kms_key_id" {

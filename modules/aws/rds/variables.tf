@@ -19,11 +19,6 @@ variable "subnet_ids" {
   type        = map(list(string))
 }
 
-variable "rds_security_group_id" {
-  description = "ID of the security group for the RDS instance"
-  type        = string
-}
-
 variable "db_user" {
   description = "Username for the database"
   type        = string

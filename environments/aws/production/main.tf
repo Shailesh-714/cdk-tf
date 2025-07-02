@@ -93,41 +93,26 @@ module "security" {
   tenant_private_key = var.tenant_private_key
 }
 
-module "endpoints" {
-  source = "../../../modules/aws/endpoints"
-
-  stack_name                       = var.stack_name
-  common_tags                      = local.common_tags
-  vpc_id                           = module.vpc.vpc_id
-  isolated_route_table_id          = module.vpc.isolated_route_table_id
-  private_with_nat_route_table_ids = module.vpc.private_with_nat_route_table_ids
-  subnet_ids                       = module.vpc.subnet_ids
-  vpc_endpoints_security_group_id  = module.security.vpc_endpoints_security_group_id
-}
-
 module "rds" {
   source = "../../../modules/aws/rds"
 
-  stack_name            = var.stack_name
-  common_tags           = local.common_tags
-  vpc_id                = module.vpc.vpc_id
-  subnet_ids            = module.vpc.subnet_ids
-  rds_security_group_id = module.security.rds_security_group_id
-  db_user               = var.db_user
-  db_name               = var.db_name
-  db_password           = var.db_password
-  db_port               = var.db_port
+  stack_name  = var.stack_name
+  common_tags = local.common_tags
+  vpc_id      = module.vpc.vpc_id
+  subnet_ids  = module.vpc.subnet_ids
+  db_user     = var.db_user
+  db_name     = var.db_name
+  db_password = var.db_password
+  db_port     = var.db_port
 }
 
 module "elasticache" {
   source = "../../../modules/aws/elasticache"
 
-  stack_name                    = var.stack_name
-  common_tags                   = local.common_tags
-  vpc_id                        = module.vpc.vpc_id
-  subnet_ids                    = module.vpc.subnet_ids
-  elasticache_security_group_id = module.security.elasticache_security_group_id
-
+  stack_name  = var.stack_name
+  common_tags = local.common_tags
+  vpc_id      = module.vpc.vpc_id
+  subnet_ids  = module.vpc.subnet_ids
 }
 
 module "dockertoecr" {
@@ -142,12 +127,12 @@ module "dockertoecr" {
 module "loadbalancers" {
   source = "../../../modules/aws/loadbalancers"
 
-  stack_name                    = var.stack_name
-  common_tags                   = local.common_tags
-  vpc_id                        = module.vpc.vpc_id
-  subnet_ids                    = module.vpc.subnet_ids
-  external_lb_security_group_id = module.security.external_lb_security_group_id
-  waf_web_acl_arn               = module.security.waf_web_acl_arn
+  stack_name      = var.stack_name
+  common_tags     = local.common_tags
+  vpc_id          = module.vpc.vpc_id
+  subnet_ids      = module.vpc.subnet_ids
+  vpn_ips         = var.vpn_ips
+  waf_web_acl_arn = module.security.waf_web_acl_arn
   # vpc_endpoints_security_group_id = module.security.vpc_endpoints_security_group_id
 }
 
@@ -174,13 +159,12 @@ module "eks" {
   control_plane_subnet_ids      = module.vpc.eks_control_plane_zone_subnet_ids
   kubernetes_version            = var.kubernetes_version
   vpn_ips                       = var.vpn_ips
-  eks_cluster_security_group_id = module.security.eks_cluster_security_group_id
   eks_cluster_role_arn          = module.security.eks_cluster_role_arn
   eks_node_group_role_arn       = module.security.eks_node_group_role_arn
   kms_key_arn                   = module.security.hyperswitch_kms_key_arn
   log_retention_days            = var.log_retention_days
-  rds_security_group_id         = module.security.rds_security_group_id
-  elasticache_security_group_id = module.security.elasticache_security_group_id
+  rds_security_group_id         = module.rds.rds_security_group_id
+  elasticache_security_group_id = module.elasticache.elasticache_security_group_id
 }
 
 module "helm" {
@@ -195,10 +179,9 @@ module "helm" {
   eks_cluster_name                     = module.eks.eks_cluster_name
   eks_cluster_endpoint                 = module.eks.eks_cluster_endpoint
   eks_cluster_ca_certificate           = module.eks.eks_cluster_ca_certificate
+  eks_cluster_security_group_id        = module.eks.eks_cluster_security_group_id
   alb_controller_service_account_name  = module.eks.alb_controller_service_account_name
   ebs_csi_driver_service_account_name  = module.eks.ebs_csi_driver_service_account_name
-  external_lb_security_group_id        = module.security.external_lb_security_group_id
-  internal_lb_security_group_id        = module.security.internal_lb_security_group_id
   hyperswitch_kms_key_id               = module.security.hyperswitch_kms_key_id
   hyperswitch_service_account_role_arn = module.eks.hyperswitch_service_account_role_arn
   kms_secrets                          = module.security.kms_secrets
@@ -210,4 +193,13 @@ module "helm" {
   rds_cluster_reader_endpoint          = module.rds.rds_cluster_reader_endpoint
   elasticache_cluster_endpoint_address = module.elasticache.elasticache_cluster_endpoint_address
   sdk_distribution_domain_name         = module.sdk.sdk_distribution_domain_name
+}
+
+module "proxy" {
+  source = "../../../modules/aws/proxy"
+
+  stack_name  = var.stack_name
+  common_tags = local.common_tags
+  vpc_id      = module.vpc.vpc_id
+  subnet_ids  = module.vpc.subnet_ids
 }

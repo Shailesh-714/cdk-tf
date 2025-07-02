@@ -39,6 +39,11 @@ variable "eks_cluster_ca_certificate" {
   type        = string
 }
 
+variable "eks_cluster_security_group_id" {
+  description = "Security group ID for the EKS cluster"
+  type        = string
+}
+
 variable "alb_controller_service_account_name" {
   description = "Name of the service account for the AWS Load Balancer Controller"
   type        = string
@@ -46,16 +51,6 @@ variable "alb_controller_service_account_name" {
 
 variable "ebs_csi_driver_service_account_name" {
   description = "Name of the service account for the EBS CSI Driver"
-  type        = string
-}
-
-variable "external_lb_security_group_id" {
-  description = "ID of the External Load Balancer Security Group"
-  type        = string
-}
-
-variable "internal_lb_security_group_id" {
-  description = "ID of the Internal Load Balancer Security Group"
   type        = string
 }
 

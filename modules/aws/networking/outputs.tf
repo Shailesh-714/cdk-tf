@@ -151,6 +151,7 @@ output "subnet_cidr_blocks" {
     incoming_npci_zone      = aws_subnet.incoming_npci_zone[*].cidr_block
     eks_control_plane_zone  = aws_subnet.eks_control_plane_zone[*].cidr_block
     incoming_web_envoy_zone = aws_subnet.incoming_web_envoy_zone[*].cidr_block
+    istio_lb_transit_zone   = aws_subnet.istio_lb_transit_zone[*].cidr_block
   }
 }
 
@@ -175,5 +176,41 @@ output "subnet_ids" {
     incoming_npci_zone      = aws_subnet.incoming_npci_zone[*].id
     eks_control_plane_zone  = aws_subnet.eks_control_plane_zone[*].id
     incoming_web_envoy_zone = aws_subnet.incoming_web_envoy_zone[*].id
+    istio_lb_transit_zone   = aws_subnet.istio_lb_transit_zone[*].id
   }
+}
+
+output "s3_vpc_endpoint_id" {
+  description = "ID of the S3 VPC Endpoint"
+  value       = aws_vpc_endpoint.s3.id
+}
+
+output "ssm_vpc_endpoint_id" {
+  description = "ID of the SSM VPC Endpoint"
+  value       = aws_vpc_endpoint.ssm.id
+}
+
+output "ssmmessages_vpc_endpoint_id" {
+  description = "ID of the SSM Messages VPC Endpoint"
+  value       = aws_vpc_endpoint.ssmmessages.id
+}
+
+output "ec2messages_vpc_endpoint_id" {
+  description = "ID of the EC2 Messages VPC Endpoint"
+  value       = aws_vpc_endpoint.ec2messages.id
+}
+
+output "secretsmanager_vpc_endpoint_id" {
+  description = "ID of the Secrets Manager VPC Endpoint"
+  value       = aws_vpc_endpoint.secretsmanager.id
+}
+
+output "kms_vpc_endpoint_id" {
+  description = "ID of the KMS VPC Endpoint"
+  value       = aws_vpc_endpoint.kms.id
+}
+
+output "rds_vpc_endpoint_id" {
+  description = "ID of the RDS VPC Endpoint"
+  value       = aws_vpc_endpoint.rds.id
 }

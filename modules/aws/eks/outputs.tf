@@ -13,6 +13,11 @@ output "eks_cluster_ca_certificate" {
   value       = aws_eks_cluster.main.certificate_authority[0].data
 }
 
+output "eks_cluster_security_group_id" {
+  description = "The security group ID of the EKS cluster"
+  value       = aws_eks_cluster.main.vpc_config[0].cluster_security_group_id
+}
+
 output "hyperswitch_service_account_role_arn" {
   description = "The ARN of the Hyperswitch service account role"
   value       = aws_iam_role.hyperswitch_service_account.arn
