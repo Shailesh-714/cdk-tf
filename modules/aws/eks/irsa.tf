@@ -164,6 +164,68 @@ resource "aws_iam_role_policy" "grafana_policy" {
   })
 }
 
+# IAM Role for EBS CSI Driver
+resource "aws_iam_role" "ebs_csi_driver" {
+  name = "${var.stack_name}-ebs-csi-driver-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Federated = aws_iam_openid_connect_provider.eks.arn
+        }
+        Action = "sts:AssumeRoleWithWebIdentity"
+        Condition = {
+          StringEquals = {
+            "${replace(aws_iam_openid_connect_provider.eks.url, "https://", "")}:sub" = "system:serviceaccount:kube-system:ebs-csi-controller-sa-${data.aws_region.current.name}"
+            "${replace(aws_iam_openid_connect_provider.eks.url, "https://", "")}:aud" = "sts.amazonaws.com"
+          }
+        }
+      }
+    ]
+  })
+
+  tags = var.common_tags
+}
+
+resource "aws_iam_role_policy_attachment" "ebs_csi_driver_policy" {
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
+  role       = aws_iam_role.ebs_csi_driver.name
+}
+
+# IAM Role for VPC CNI
+resource "aws_iam_role" "vpc_cni_role" {
+  name = "${var.stack_name}-vpc-cni-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Federated = aws_iam_openid_connect_provider.eks.arn
+        }
+        Action = "sts:AssumeRoleWithWebIdentity"
+        Condition = {
+          StringEquals = {
+            "${replace(aws_iam_openid_connect_provider.eks.url, "https://", "")}:sub" = "system:serviceaccount:kube-system:aws-node"
+            "${replace(aws_iam_openid_connect_provider.eks.url, "https://", "")}:aud" = "sts.amazonaws.com"
+          }
+        }
+      }
+    ]
+  })
+
+  tags = var.common_tags
+}
+
+resource "aws_iam_role_policy_attachment" "vpc_cni_policy" {
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
+  role       = aws_iam_role.vpc_cni_role.name
+}
+
 
 # Module for AWS Load Balancer Controller IRSA
 module "aws_load_balancer_controller_irsa" {
@@ -200,7 +262,7 @@ resource "kubernetes_service_account" "ebs_csi_controller_sa" {
     name      = "ebs-csi-controller-sa-${data.aws_region.current.name}"
     namespace = "kube-system"
     annotations = {
-      "eks.amazonaws.com/role-arn" = var.eks_node_group_role_arn
+      "eks.amazonaws.com/role-arn" = aws_iam_role.ebs_csi_driver.arn
     }
   }
   depends_on = [aws_eks_cluster.main]

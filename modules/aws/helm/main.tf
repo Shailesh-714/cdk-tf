@@ -55,69 +55,6 @@ resource "helm_release" "alb_controller" {
 
 }
 
-# Helm release for EBS CSI Driver
-resource "helm_release" "ebs_csi_driver" {
-  name       = "ebs-csi-driver"
-  repository = "https://kubernetes-sigs.github.io/aws-ebs-csi-driver"
-  chart      = "aws-ebs-csi-driver"
-  namespace  = "kube-system"
-  wait       = true
-
-  values = [
-    yamlencode({
-      image = {
-        repository = "${var.private_ecr_repository}/ebs-csi-driver/aws-ebs-csi-driver"
-        tag        = "v1.41.0"
-      }
-      sidecars = {
-        provisioner = {
-          image = {
-            repository = "${var.private_ecr_repository}/eks-distro/kubernetes-csi/external-provisioner"
-            tag        = "v5.2.0-eks-1-32-10"
-          }
-        }
-        attacher = {
-          image = {
-            repository = "${var.private_ecr_repository}/eks-distro/kubernetes-csi/external-attacher"
-            tag        = "v4.8.1-eks-1-32-10"
-          }
-        }
-        snapshotter = {
-          image = {
-            repository = "${var.private_ecr_repository}/eks-distro/kubernetes-csi/external-snapshotter/csi-snapshotter"
-            tag        = "v8.2.1-eks-1-32-10"
-          }
-        }
-        livenessProbe = {
-          image = {
-            repository = "${var.private_ecr_repository}/eks-distro/kubernetes-csi/livenessprobe"
-            tag        = "v2.15.0-eks-1-32-10"
-          }
-        }
-        resizer = {
-          image = {
-            repository = "${var.private_ecr_repository}/eks-distro/kubernetes-csi/external-resizer"
-            tag        = "v1.13.2-eks-1-32-10"
-          }
-        }
-        nodeDriverRegistrar = {
-          image = {
-            repository = "${var.private_ecr_repository}/eks-distro/kubernetes-csi/node-driver-registrar"
-            tag        = "v2.13.0-eks-1-32-10"
-          }
-        }
-        volumemodifier = {
-          image = {
-            repository = "${var.private_ecr_repository}/ebs-csi-driver/volume-modifier-for-k8s"
-            tag        = "v0.5.1"
-          }
-        }
-      }
-    })
-  ]
-}
-
-
 # Helm release for Istio base components
 resource "helm_release" "istio_base" {
   name             = "istio-base"
