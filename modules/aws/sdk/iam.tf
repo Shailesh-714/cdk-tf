@@ -68,6 +68,16 @@ resource "aws_iam_role_policy" "sdk_build_policy" {
           "cloudfront:ListDistributions"
         ]
         Resource = ["*"]
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "logs:CreateLogGroup",
+          "logs:CreateLogStream",
+          "logs:PutLogEvents"
+        ]
+        Resource = [aws_cloudwatch_log_group.codebuild_logs.arn,
+        "${aws_cloudwatch_log_group.codebuild_logs.arn}:*"]
       }
     ]
   })

@@ -28,3 +28,8 @@ variable "external_alb_distribution_domain_name" {
   description = "Domain name of the external ALB CloudFront distribution"
   type        = string
 }
+
+variable "log_retention_days" {
+  description = "Number of days to retain logs in CloudWatch"
+  type        = number
+}

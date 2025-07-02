@@ -116,12 +116,24 @@ resource "aws_codebuild_project" "hyperswitch_sdk" {
     EOT
   }
 
+  logs_config {
+    cloudwatch_logs {
+      group_name  = aws_cloudwatch_log_group.codebuild_logs.name
+      stream_name = "sdk-build-logs"
+    }
+  }
+
   tags = merge(
     var.common_tags,
     {
       Name = "${var.stack_name}-sdk-codebuild"
     }
   )
+}
+
+resource "aws_cloudwatch_log_group" "codebuild_logs" {
+  name              = "/aws/codebuild/${var.stack_name}-sdk-build-logs"
+  retention_in_days = var.log_retention_days
 }
 
 # Package the Lambda code

@@ -18,3 +18,9 @@ variable "subnet_ids" {
   description = "List of subnet IDs for the RDS instance"
   type        = map(list(string))
 }
+
+variable "log_retention_days" {
+  description = "Number of days to retain logs in CloudWatch"
+  type        = number
+
+}

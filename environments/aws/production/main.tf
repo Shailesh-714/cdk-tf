@@ -118,10 +118,11 @@ module "elasticache" {
 module "dockertoecr" {
   source = "../../../modules/aws/dockertoecr"
 
-  stack_name  = var.stack_name
-  common_tags = local.common_tags
-  vpc_id      = module.vpc.vpc_id
-  subnet_ids  = module.vpc.subnet_ids
+  stack_name         = var.stack_name
+  common_tags        = local.common_tags
+  vpc_id             = module.vpc.vpc_id
+  subnet_ids         = module.vpc.subnet_ids
+  log_retention_days = var.log_retention_days
 }
 
 module "loadbalancers" {
@@ -145,6 +146,7 @@ module "sdk" {
   subnet_ids                            = module.vpc.subnet_ids
   sdk_version                           = local.sdk_version
   external_alb_distribution_domain_name = module.loadbalancers.external_alb_distribution_domain_name
+  log_retention_days                    = var.log_retention_days
 }
 
 module "eks" {

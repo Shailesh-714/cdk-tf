@@ -55,7 +55,6 @@ resource "aws_cloudwatch_log_group" "eks" {
 resource "aws_eks_addon" "vpc_cni" {
   cluster_name                = aws_eks_cluster.main.name
   addon_name                  = "vpc-cni"
-  addon_version               = "v1.18.1-eksbuild.1" # Latest stable version
   resolve_conflicts_on_create = "OVERWRITE"
   service_account_role_arn    = aws_iam_role.vpc_cni_role.arn
 
@@ -71,7 +70,6 @@ resource "aws_eks_addon" "vpc_cni" {
 resource "aws_eks_addon" "kube_proxy" {
   cluster_name                = aws_eks_cluster.main.name
   addon_name                  = "kube-proxy"
-  addon_version               = "v1.29.0-eksbuild.1" # Match your K8s version
   resolve_conflicts_on_create = "OVERWRITE"
 
   tags = merge(
@@ -85,7 +83,6 @@ resource "aws_eks_addon" "kube_proxy" {
 resource "aws_eks_addon" "coredns" {
   cluster_name                = aws_eks_cluster.main.name
   addon_name                  = "coredns"
-  addon_version               = "v1.11.1-eksbuild.4" # Latest stable version
   resolve_conflicts_on_create = "OVERWRITE"
 
   tags = merge(
@@ -104,7 +101,6 @@ resource "aws_eks_addon" "coredns" {
 resource "aws_eks_addon" "ebs_csi_driver" {
   cluster_name                = aws_eks_cluster.main.name
   addon_name                  = "aws-ebs-csi-driver"
-  addon_version               = "v1.28.0-eksbuild.1"
   resolve_conflicts_on_create = "OVERWRITE"
   service_account_role_arn    = aws_iam_role.ebs_csi_driver.arn
 

@@ -32,12 +32,24 @@ resource "aws_codebuild_project" "ecr_image_transfer" {
     buildspec = file("${path.module}/dependencies/buildspec.yml")
   }
 
+  logs_config {
+    cloudwatch_logs {
+      group_name  = aws_cloudwatch_log_group.codebuild_logs.name
+      stream_name = "ecr-image-transfer-log-stream"
+    }
+  }
+
   tags = merge(
     var.common_tags,
     {
       Name = "${var.stack_name}-ecr-image-transfer"
     }
   )
+}
+
+resource "aws_cloudwatch_log_group" "codebuild_logs" {
+  name              = "/aws/codebuild/${var.stack_name}-ecr-image-transfer"
+  retention_in_days = var.log_retention_days
 }
 
 # Package the Lambda code

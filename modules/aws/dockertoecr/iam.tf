@@ -56,6 +56,18 @@ resource "aws_iam_role_policy" "ecr_policy" {
           "ecr:PutImage"
         ]
         Resource = "*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "logs:CreateLogGroup",
+          "logs:CreateLogStream",
+          "logs:PutLogEvents"
+        ]
+        Resource = [
+          aws_cloudwatch_log_group.codebuild_logs.arn,
+          "${aws_cloudwatch_log_group.codebuild_logs.arn}:*"
+        ]
       }
     ]
   })
