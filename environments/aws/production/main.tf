@@ -204,8 +204,11 @@ module "proxy" {
   common_tags                           = local.common_tags
   vpc_id                                = module.vpc.vpc_id
   subnet_ids                            = module.vpc.subnet_ids
+  envoy_image_ami                       = var.envoy_image_ami
+  squid_image_ami                       = var.squid_image_ami
   internal_alb_security_group_id        = module.helm.internal_alb_security_group_id
   external_alb_security_group_id        = module.loadbalancers.external_alb_security_group_id
   internal_alb_domain_name              = module.helm.internal_alb_dns_name
   external_alb_distribution_domain_name = module.loadbalancers.external_alb_distribution_domain_name
+  envoy_target_group_arn                = module.loadbalancers.envoy_target_group_arn
 }

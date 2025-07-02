@@ -109,3 +109,13 @@ variable "tenant_private_key" {
   type        = string
   sensitive   = true
 }
+
+variable "envoy_image_ami" {
+  description = "AMI ID for the Envoy image"
+  type        = string
+}
+
+variable "squid_image_ami" {
+  description = "AMI ID for the Squid image"
+  type        = string
+}

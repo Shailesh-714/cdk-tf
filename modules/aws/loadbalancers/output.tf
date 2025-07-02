@@ -7,3 +7,8 @@ output "external_alb_distribution_domain_name" {
   value       = aws_cloudfront_distribution.external_alb_distribution.domain_name
   description = "The domain name of the external ALB CloudFront distribution"
 }
+
+output "envoy_target_group_arn" {
+  value       = aws_lb_target_group.envoy_tg.arn
+  description = "ARN of the Envoy target group"
+}

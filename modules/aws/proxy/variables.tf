@@ -19,6 +19,16 @@ variable "subnet_ids" {
   type        = map(list(string))
 }
 
+variable "envoy_image_ami" {
+  description = "AMI ID for the Envoy image"
+  type        = string
+}
+
+variable "squid_image_ami" {
+  description = "AMI ID for the Squid image"
+  type        = string
+}
+
 variable "internal_alb_security_group_id" {
   description = "ID of the Internal Load Balancer Security Group"
   type        = string
@@ -36,5 +46,10 @@ variable "internal_alb_domain_name" {
 
 variable "external_alb_distribution_domain_name" {
   description = "Domain name of the external ALB"
+  type        = string
+}
+
+variable "envoy_target_group_arn" {
+  description = "ARN of the Envoy target group"
   type        = string
 }
