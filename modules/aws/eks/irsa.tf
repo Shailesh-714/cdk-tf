@@ -46,9 +46,9 @@ resource "aws_iam_role" "hyperswitch_service_account" {
 }
 
 # KMS and other policies for Hyperswitch
-resource "aws_iam_policy" "hyperswitch_service_account_policy" {
-  name        = "${var.stack_name}-hyperswitch-service-account-policy"
-  description = "Policy for Hyperswitch KMS, lb, ssm, secrets manager service access"
+resource "aws_iam_role_policy" "hyperswitch_service_account_policy" {
+  name = "${var.stack_name}-hyperswitch-service-account-policy"
+  role = aws_iam_role.hyperswitch_service_account.id
 
   policy = jsonencode({
     Version = "2012-10-17"
@@ -84,10 +84,86 @@ resource "aws_iam_policy" "hyperswitch_service_account_policy" {
   })
 }
 
-resource "aws_iam_role_policy_attachment" "hyperswitch_service_account_policy_attachment" {
-  policy_arn = aws_iam_policy.hyperswitch_service_account_policy.arn
-  role       = aws_iam_role.hyperswitch_service_account.name
+# IAM Role for the Kubernetes ServiceAccount
+resource "aws_iam_role" "grafana_service_account_role" {
+  name = "grafana-service-account-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect = "Allow",
+        Principal = {
+          Federated = aws_iam_openid_connect_provider.eks.arn
+        },
+        Action = "sts:AssumeRoleWithWebIdentity",
+        Condition = {
+          StringEquals = {
+            "${replace(aws_iam_openid_connect_provider.eks.url, "https://", "")}:aud" = "sts.amazonaws.com"
+            "${replace(aws_iam_openid_connect_provider.eks.url, "https://", "")}:sub" = [
+              "system:serviceaccount:loki:loki-grafana",
+              "system:serviceaccount:loki:loki"
+            ]
+          }
+        }
+      }
+    ]
+  })
 }
+
+resource "aws_iam_role_policy" "grafana_policy" {
+  name = "grafana-inline-policy"
+  role = aws_iam_role.grafana_service_account_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Sid    = "AllowReadingMetricsFromCloudWatch",
+        Effect = "Allow",
+        Action = [
+          "cloudwatch:DescribeAlarmsForMetric",
+          "cloudwatch:DescribeAlarmHistory",
+          "cloudwatch:DescribeAlarms",
+          "cloudwatch:ListMetrics",
+          "cloudwatch:GetMetricData",
+          "cloudwatch:GetInsightRuleReport"
+        ],
+        Resource = "*"
+      },
+      {
+        Sid    = "AllowReadingLogsFromCloudWatch",
+        Effect = "Allow",
+        Action = [
+          "logs:DescribeLogGroups",
+          "logs:GetLogGroupFields",
+          "logs:StartQuery",
+          "logs:StopQuery",
+          "logs:GetQueryResults",
+          "logs:GetLogEvents"
+        ],
+        Resource = "*"
+      },
+      {
+        Sid    = "AllowReadingTagsInstancesRegionsFromEC2",
+        Effect = "Allow",
+        Action = [
+          "ec2:DescribeTags",
+          "ec2:DescribeInstances",
+          "ec2:DescribeRegions"
+        ],
+        Resource = "*"
+      },
+      {
+        Sid      = "AllowReadingResourcesForTags",
+        Effect   = "Allow",
+        Action   = "tag:GetResources",
+        Resource = "*"
+      }
+    ]
+  })
+}
+
 
 # Module for AWS Load Balancer Controller IRSA
 module "aws_load_balancer_controller_irsa" {

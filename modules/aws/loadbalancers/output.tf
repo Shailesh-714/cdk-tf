@@ -1,3 +1,8 @@
+output "external_alb_security_group_id" {
+  value       = aws_security_group.external_lb_sg.id
+  description = "ID of the External ALB Security Group"
+}
+
 output "external_alb_distribution_domain_name" {
   value       = aws_cloudfront_distribution.external_alb_distribution.domain_name
   description = "The domain name of the external ALB CloudFront distribution"

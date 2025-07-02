@@ -18,3 +18,23 @@ variable "subnet_ids" {
   description = "List of subnet IDs for the RDS instance"
   type        = map(list(string))
 }
+
+variable "internal_alb_security_group_id" {
+  description = "ID of the Internal Load Balancer Security Group"
+  type        = string
+}
+
+variable "external_alb_security_group_id" {
+  description = "ID of the External ALB Security Group"
+  type        = string
+}
+
+variable "internal_alb_domain_name" {
+  description = "ID of the Istio Internal ALB Security Group"
+  type        = string
+}
+
+variable "external_alb_distribution_domain_name" {
+  description = "Domain name of the external ALB"
+  type        = string
+}

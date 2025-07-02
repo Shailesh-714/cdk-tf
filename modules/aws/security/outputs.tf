@@ -1,8 +1,3 @@
-output "envoy_security_group_id" {
-  description = "ID of the Envoy Security Group"
-  value       = aws_security_group.envoy_sg.id
-}
-
 output "hyperswitch_kms_key_id" {
   description = "ID of the KMS key"
   value       = aws_kms_key.hyperswitch_kms_key.id

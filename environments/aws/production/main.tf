@@ -174,6 +174,7 @@ module "helm" {
   common_tags                          = local.common_tags
   vpc_id                               = module.vpc.vpc_id
   subnet_ids                           = module.vpc.subnet_ids
+  vpn_ips                              = var.vpn_ips
   sdk_version                          = local.sdk_version
   private_ecr_repository               = local.private_ecr_repository
   eks_cluster_name                     = module.eks.eks_cluster_name
@@ -184,6 +185,7 @@ module "helm" {
   ebs_csi_driver_service_account_name  = module.eks.ebs_csi_driver_service_account_name
   hyperswitch_kms_key_id               = module.security.hyperswitch_kms_key_id
   hyperswitch_service_account_role_arn = module.eks.hyperswitch_service_account_role_arn
+  grafana_service_account_role_arn     = module.eks.grafana_service_account_role_arn
   kms_secrets                          = module.security.kms_secrets
   locker_enabled                       = var.locker_enabled
   locker_public_key                    = var.locker_public_key
@@ -198,8 +200,12 @@ module "helm" {
 module "proxy" {
   source = "../../../modules/aws/proxy"
 
-  stack_name  = var.stack_name
-  common_tags = local.common_tags
-  vpc_id      = module.vpc.vpc_id
-  subnet_ids  = module.vpc.subnet_ids
+  stack_name                            = var.stack_name
+  common_tags                           = local.common_tags
+  vpc_id                                = module.vpc.vpc_id
+  subnet_ids                            = module.vpc.subnet_ids
+  internal_alb_security_group_id        = module.helm.internal_alb_security_group_id
+  external_alb_security_group_id        = module.loadbalancers.external_alb_security_group_id
+  internal_alb_domain_name              = module.helm.internal_alb_dns_name
+  external_alb_distribution_domain_name = module.loadbalancers.external_alb_distribution_domain_name
 }

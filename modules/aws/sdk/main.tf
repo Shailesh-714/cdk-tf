@@ -5,7 +5,7 @@ data "aws_region" "current" {}
 data "aws_caller_identity" "current" {}
 
 # ==========================================================
-#                    S3 Bucker for SDK
+#                    S3 Bucket for SDK
 # ==========================================================
 
 resource "aws_s3_bucket" "hyperswitch_sdk" {

@@ -23,6 +23,11 @@ output "hyperswitch_service_account_role_arn" {
   value       = aws_iam_role.hyperswitch_service_account.arn
 }
 
+output "grafana_service_account_role_arn" {
+  description = "The ARN of the Grafana service account role"
+  value       = aws_iam_role.grafana_service_account_role.arn
+}
+
 output "alb_controller_service_account_name" {
   description = "The name of the service account for the AWS Load Balancer Controller"
   value       = kubernetes_service_account.alb_controller.metadata[0].name

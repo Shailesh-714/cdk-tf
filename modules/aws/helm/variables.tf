@@ -19,6 +19,12 @@ variable "subnet_ids" {
   type        = map(list(string))
 }
 
+variable "vpn_ips" {
+  description = "List of VPN IPs for the security group"
+  type        = list(string)
+  default     = []
+}
+
 variable "private_ecr_repository" {
   description = "ECR repository for private images"
   type        = string
@@ -61,6 +67,11 @@ variable "hyperswitch_kms_key_id" {
 
 variable "hyperswitch_service_account_role_arn" {
   description = "ARN of the Hyperswitch service account role"
+  type        = string
+}
+
+variable "grafana_service_account_role_arn" {
+  description = "ARN of the Grafana service account role"
   type        = string
 }
 

@@ -483,7 +483,7 @@ resource "helm_release" "traffic_control" {
           "alb.ingress.kubernetes.io/listen-ports"                 = "[{\"HTTP\": 80}]"
           "alb.ingress.kubernetes.io/load-balancer-attributes"     = "routing.http.drop_invalid_header_fields.enabled=true,routing.http.xff_client_port.enabled=true,routing.http.preserve_host_header.enabled=true"
           "alb.ingress.kubernetes.io/scheme"                       = "internal"
-          "alb.ingress.kubernetes.io/security-groups"              = aws_security_group.internal_lb_sg.id
+          "alb.ingress.kubernetes.io/security-groups"              = aws_security_group.internal_alb_sg.id
           "alb.ingress.kubernetes.io/subnets"                      = var.subnet_ids["istio_lb_transit_zone"]
           "alb.ingress.kubernetes.io/target-type"                  = "ip"
           "alb.ingress.kubernetes.io/unhealthy-threshold-count"    = "3"
@@ -512,7 +512,247 @@ resource "helm_release" "traffic_control" {
     helm_release.istio_base,
     helm_release.istiod,
     helm_release.istio_gateway,
-    helm_release.hyperswitch_services
+    helm_release.hyperswitch_services,
+    aws_security_group.internal_alb_sg
   ]
 }
 
+# Istio Internal ALB Data Source
+data "aws_lb" "internal_alb" {
+  tags = {
+    "ingress.k8s.aws/stack" = "hyperswitch-istio-app-alb-ingress-group" # Your group name
+  }
+
+  depends_on = [helm_release.traffic_control]
+}
+
+resource "aws_s3_bucket" "loki_logs" {
+  bucket = "${var.stack_name}-loki-logs-storage-${data.aws_caller_identity.current.account_id}-${data.aws_region.current.name}"
+
+  force_destroy = true
+
+  tags = {
+    Name = "${var.stack_name}-loki-logs-storage-bucket"
+  }
+}
+
+resource "aws_s3_bucket_policy" "loki_logs_rw" {
+  bucket = aws_s3_bucket.loki_logs.id
+
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Sid    = "AllowGrafanaServiceAccountRoleAccess"
+        Effect = "Allow"
+        Principal = {
+          AWS = var.grafana_service_account_role_arn
+        }
+        Action = [
+          "s3:GetObject",
+          "s3:PutObject",
+          "s3:DeleteObject",
+          "s3:ListBucket"
+        ]
+        Resource = [
+          aws_s3_bucket.loki_logs.arn,
+          "${aws_s3_bucket.loki_logs.arn}/*"
+        ]
+      }
+    ]
+  })
+}
+
+# Loki Helm release
+resource "helm_release" "loki_stack" {
+  name       = "loki"
+  chart      = "loki-stack"
+  repository = "https://grafana.github.io/helm-charts/"
+  namespace  = "loki"
+
+  values = [
+    yamlencode({
+      grafana = {
+        global = {
+          imageRegisrty = var.private_ecr_repository
+        }
+        image = {
+          repository = "${var.private_ecr_repository}/grafana/grafana"
+          tag        = "latest"
+        }
+        sidecar = {
+          image = {
+            repository = "${var.private_ecr_repository}/kiwigrid/k8s-sidecar"
+            tag        = "1.30.3"
+            sha        = ""
+          }
+          imagePullPolicy = "IfNotPresent"
+          resources       = {}
+        }
+        enabled       = true
+        adminPassword = "admin"
+        serviceAccount = {
+          annotations = {
+            "eks.amazonaws.com/role-arn" = var.grafana_service_account_role_arn
+          }
+        }
+        nodeSelector = {
+          "node-type" = "monitoring"
+        }
+        ingress = {
+          enabled          = true
+          ingressClassName = "alb"
+          annotations = {
+            "alb.ingress.kubernetes.io/backend-protocol"         = "HTTP"
+            "alb.ingress.kubernetes.io/group.name"               = "hs-logs-alb-ingress-group"
+            "alb.ingress.kubernetes.io/ip-address-type"          = "ipv4"
+            "alb.ingress.kubernetes.io/healthcheck-path"         = "/api/health"
+            "alb.ingress.kubernetes.io/listen-ports"             = "[{\"HTTP\": 80}]"
+            "alb.ingress.kubernetes.io/load-balancer-attributes" = "routing.http.drop_invalid_header_fields.enabled=true"
+            "alb.ingress.kubernetes.io/load-balancer-name"       = "hyperswitch-grafana-logs"
+            "alb.ingress.kubernetes.io/scheme"                   = "internet-facing"
+            "alb.ingress.kubernetes.io/tags"                     = "stack=hyperswitch-lb"
+            "alb.ingress.kubernetes.io/security-groups"          = aws_security_group.grafana_ingress_lb_sg.id
+            "alb.ingress.kubernetes.io/subnets"                  = var.subnet_ids["external_incoming_zone"]
+            "alb.ingress.kubernetes.io/target-type"              = "ip"
+          }
+          extraPaths = [
+            {
+              path     = "/"
+              pathType = "Prefix"
+              backend = {
+                service = {
+                  name = "loki-grafana"
+                  port = {
+                    number = 80
+                  }
+                }
+              }
+            }
+          ]
+          hosts = []
+        }
+      }
+
+      loki = {
+        enabled = true
+        global = {
+          imageRegisrty = var.private_ecr_repository
+        }
+        serviceAccount = {
+          annotations = {
+            "eks.amazonaws.com/role-arn" = var.grafana_service_account_role_arn
+          }
+        }
+        nodeSelector = {
+          "node-type" = "monitoring"
+        }
+        config = {
+          limits_config = {
+            enforce_metric_name         = false
+            max_entries_limit_per_query = 5000
+            max_query_lookback          = "90d"
+            reject_old_samples          = true
+            reject_old_samples_max_age  = "168h"
+            retention_period            = "100d"
+            retention_stream = [
+              {
+                period   = "7d"
+                priority = 1
+                selector = "{level=\"debug\"}"
+              }
+            ]
+          }
+          schema_config = {
+            configs = [
+              {
+                chunks = {
+                  period = "24h"
+                  prefix = "loki_chunk_"
+                }
+                from = "2024-05-01"
+                index = {
+                  prefix = "loki_index_"
+                  period = "24h"
+                }
+                object_store = "s3"
+                schema       = "v12"
+                store        = "tsdb"
+              }
+            ]
+          }
+          storage_config = {
+            boltdb_shipper = {
+              active_index_directory = "/data/loki/boltdb-shipper-active"
+              cache_location         = "/data/loki/boltdb-shipper-cache"
+              cache_ttl              = "24h"
+              shared_store           = "filesystem"
+            }
+            filesystem = {
+              directory = "/data/loki/chunks"
+            }
+            hedging = {
+              at             = "250ms"
+              max_per_second = 20
+              up_to          = 3
+            }
+            tsdb_shipper = {
+              active_index_directory = "/data/tsdb-index"
+              cache_location         = "/data/tsdb-cache"
+              shared_store           = "s3"
+            }
+            aws = {
+              bucketnames = aws_s3_bucket.loki_logs.bucket
+              region      = data.aws_region.current.name
+            }
+          }
+        }
+        image = {
+          repository = "${var.private_ecr_repository}/grafana/loki"
+          tag        = "latest"
+        }
+      }
+
+      promtail = {
+        enabled = true
+        global = {
+          imageRegisrty = var.private_ecr_repository
+        }
+        image = {
+          registry   = var.private_ecr_repository
+          repository = "grafana/promtail"
+          tag        = "latest"
+        }
+        config = {
+          snippets = {
+            extraRelabelConfigs = [
+              {
+                action        = "keep"
+                regex         = "hyperswitch-.*"
+                source_labels = ["__meta_kubernetes_pod_label_app"]
+              }
+            ]
+          }
+        }
+      }
+    })
+  ]
+
+  depends_on = [helm_release.hyperswitch_services]
+}
+
+resource "helm_release" "metrics_server" {
+  name       = "metrics-server"
+  chart      = "metrics-server"
+  repository = "https://kubernetes-sigs.github.io/metrics-server/"
+  namespace  = "kube-system"
+
+  values = [
+    yamlencode({
+      image = {
+        repository = "${var.private_ecr_repository}/bitnami/metrics-server"
+        tag        = "0.7.2"
+      }
+    })
+  ]
+}
