@@ -1,10 +1,6 @@
-
 import os
 import json
 import boto3
-import urllib3
-
-http = urllib3.PoolManager()
 
 
 def worker():
@@ -24,55 +20,21 @@ def worker():
         imagePipelineArn=base_arn)
 
 
-def send(event, context, responseStatus, responseData, physicalResourceId=None, noEcho=False, reason=None):
-    responseUrl = event['ResponseURL']
-
-    responseBody = {
-        'Status': responseStatus,
-        'Reason': reason or "See the details in CloudWatch Log Stream: {}".format(context.log_stream_name),
-        'PhysicalResourceId': physicalResourceId or context.log_stream_name,
-        'StackId': event['StackId'],
-        'RequestId': event['RequestId'],
-        'LogicalResourceId': event['LogicalResourceId'],
-        'NoEcho': noEcho,
-        'Data': responseData
-    }
-
-    json_responseBody = json.dumps(responseBody)
-
-    print("Response body:")
-    print(json_responseBody)
-
-    headers = {
-        'content-type': '',
-        'content-length': str(len(json_responseBody))
-    }
+def lambda_handler(event, context):
+    print("Received event:")
+    print(json.dumps(event))
 
     try:
-        response = http.request(
-            'PUT', responseUrl, headers=headers, body=json_responseBody)
-        print("Status code:", response.status)
-        return responseBody
-
+        worker()
+        message = "ImageBuilder pipelines triggered successfully"
+        print(message)
+        return {
+            "statusCode": 200,
+            "body": json.dumps({"message": message})
+        }
     except Exception as e:
-
-        print("send(..) failed executing http.request(..):", e)
-        return {}
-
-
-def lambda_handler(event, context):
-    if event['RequestType'] == 'Create':
-        try:
-            worker()
-            message = "Completed Successfully"
-            status = "SUCCESS"
-            send(event, context, status,
-                 {
-                     "message": message
-                 })
-        except Exception as e:
-            send(event, context, "FAILED", {"message": str(e)})
-    else:
-        send(event, context, "SUCCESS", {"message": "No action required"})
-
-    send(event, context, "SUCCESS", {"message": "No action required"})
+        print("Error:", str(e))
+        return {
+            "statusCode": 500,
+            "body": json.dumps({"error": str(e)})
+        }

@@ -1,16 +1,3 @@
-# Variables
-variable "ami_id" {
-  description = "Base AMI ID for image building"
-  type        = string
-  default     = null
-}
-
-variable "stack_name" {
-  description = "Name of the stack"
-  type        = string
-  default     = "imagebuilder-stack"
-}
-
 # Data sources
 data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
@@ -37,7 +24,7 @@ locals {
 
 # VPC Configuration
 resource "aws_vpc" "imagebuilder_vpc" {
-  cidr_block           = "10.0.0.0/16"
+  cidr_block           = var.vpc_cidr
   enable_dns_hostnames = true
   enable_dns_support   = true
 
@@ -55,7 +42,7 @@ resource "aws_internet_gateway" "imagebuilder_igw" {
 }
 
 resource "aws_subnet" "imagebuilder_public_subnet" {
-  count             = 2
+  count             = var.az_count
   vpc_id            = aws_vpc.imagebuilder_vpc.id
   cidr_block        = "10.0.${count.index + 1}.0/24"
   availability_zone = data.aws_availability_zones.available.names[count.index]
@@ -347,20 +334,31 @@ resource "aws_lambda_function" "ib_start_lambda" {
 # Archive the Lambda code
 data "archive_file" "start_ib_zip" {
   type        = "zip"
-  source_file = file("${path.module}/lambda/start_ib.py")
   output_path = "${path.module}/lambda/start_ib.zip"
+
+  source {
+    content  = file("${path.module}/lambda/start_ib.py")
+    filename = "index.py"
+  }
 }
 
 data "archive_file" "record_ami_zip" {
   type        = "zip"
-  source_file = file("${path.module}/lambda/record_ami.py")
   output_path = "${path.module}/lambda/record_ami.zip"
+
+  source {
+    content  = file("${path.module}/lambda/record_ami.py")
+    filename = "index.py"
+  }
 }
 
 # Custom Resource to trigger Lambda
 resource "aws_lambda_invocation" "trigger_ib_start" {
   function_name = aws_lambda_function.ib_start_lambda.function_name
-  input         = "{}"
+  input = jsonencode({
+    trigger = "start-image-builder"
+  })
+
 
   depends_on = [aws_lambda_function.ib_start_lambda]
 }
@@ -384,7 +382,7 @@ resource "aws_lambda_function" "record_ami_squid" {
 }
 
 resource "aws_lambda_function" "record_ami_envoy" {
-  filename      = "record_ami.zip"
+  filename      = data.archive_file.record_ami_zip.output_path
   function_name = "HyperswitchRecordAmiIdEnvoy"
   role          = aws_iam_role.lambda_role.arn
   handler       = "index.lambda_handler"
@@ -401,7 +399,7 @@ resource "aws_lambda_function" "record_ami_envoy" {
 }
 
 resource "aws_lambda_function" "record_ami_base" {
-  filename      = "record_ami.zip"
+  filename      = data.archive_file.record_ami_zip.output_path
   function_name = "HyperswitchRecordAmiIdBase"
   role          = aws_iam_role.lambda_role.arn
   handler       = "index.lambda_handler"
