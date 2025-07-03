@@ -322,7 +322,7 @@ resource "helm_release" "hyperswitch_services" {
 resource "helm_release" "traffic_control" {
   name             = "hs-istio"
   chart            = "hyperswitch-istio"
-  repository       = "https://itsharshvb.github.io/istio-test/"
+  repository       = "https://shailesh-714.github.io/istio-test/"
   namespace        = "istio-system"
   create_namespace = true
 
