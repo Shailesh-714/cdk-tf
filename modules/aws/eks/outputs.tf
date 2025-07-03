@@ -23,6 +23,11 @@ output "hyperswitch_service_account_role_arn" {
   value       = aws_iam_role.hyperswitch_service_account.arn
 }
 
+output "istio_service_account_role_arn" {
+  description = "The ARN of the Istio service account role"
+  value       = aws_iam_role.istio_service_account.arn
+}
+
 output "grafana_service_account_role_arn" {
   description = "The ARN of the Grafana service account role"
   value       = aws_iam_role.grafana_service_account_role.arn

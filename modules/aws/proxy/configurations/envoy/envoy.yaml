@@ -57,7 +57,7 @@ static_resources:
                   #         envoy_grpc:
                   #           cluster_name: ratelimit_service
                   - name: envoy.filters.http.router
-                    typed_config: 
+                    typed_config:
                       "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
                       dynamic_stats: true
                 local_reply_config:
@@ -121,7 +121,7 @@ static_resources:
                                       descriptor_key: "api_key_category_A"
                             timeout: 60s
                             idle_timeout: 60s
-                            cluster: hyperswitch-cluster
+                            cluster: "{{eks_cluster_name}}"
                         - match:
                             prefix: "/"
                           route:
@@ -131,21 +131,21 @@ static_resources:
                                       descriptor_value: "api_key_category_B"
                             timeout: 60s
                             idle_timeout: 60s
-                            cluster: hyperswitch-cluster
+                            cluster: "{{eks_cluster_name}}"
   clusters:
-    - name: hyperswitch-cluster
+    - name: "{{eks_cluster_name}}"
       connect_timeout: 0.25s
       type: LOGICAL_DNS
       dns_lookup_family: V4_ONLY
       lb_policy: ROUND_ROBIN
       load_assignment:
-        cluster_name: hyperswitch-cluster
+        cluster_name: "{{eks_cluster_name}}"
         endpoints:
           - lb_endpoints:
               - endpoint:
                   address:
                     socket_address:
-                      address: {{internal_loadbalancer_dns}}
+                      address: "{{internal_loadbalancer_dns}}"
                       port_value: 80
     # - name: ratelimit_service
     #   connect_timeout: 0.25s

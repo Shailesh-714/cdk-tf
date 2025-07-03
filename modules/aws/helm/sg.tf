@@ -31,6 +31,16 @@ resource "aws_security_group_rule" "internal_alb_to_eks_health_egress" {
   description              = "Allow Istio health checks"
 }
 
+resource "aws_security_group_rule" "eks_from_internal_alb_health_ingress" {
+  type                     = "ingress"
+  from_port                = 15021
+  to_port                  = 15021
+  protocol                 = "tcp"
+  source_security_group_id = aws_security_group.internal_alb_sg.id
+  security_group_id        = var.eks_cluster_security_group_id
+  description              = "Allow Istio health checks from Internal LB"
+}
+
 # Internal LB -> EKS (Istio Gateway - ingress)
 resource "aws_security_group_rule" "eks_from_internal_alb_ingress" {
   type                     = "ingress"

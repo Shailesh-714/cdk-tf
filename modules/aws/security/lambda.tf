@@ -32,7 +32,7 @@ resource "aws_lambda_invocation" "kms_encrypt" {
   input = jsonencode({
     RequestType = "Create"
     ResourceProperties = {
-      # Trigger = timestamp() # Forces re-run if needed
+      Trigger = aws_secretsmanager_secret_version.hyperswitch.version_id, # Forces re-run if secrets change
     }
   })
 

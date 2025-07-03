@@ -70,6 +70,11 @@ variable "hyperswitch_service_account_role_arn" {
   type        = string
 }
 
+variable "istio_service_account_role_arn" {
+  description = "ARN of the Istio service account role"
+  type        = string
+}
+
 variable "grafana_service_account_role_arn" {
   description = "ARN of the Grafana service account role"
   type        = string

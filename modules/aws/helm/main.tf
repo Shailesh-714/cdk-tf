@@ -55,80 +55,6 @@ resource "helm_release" "alb_controller" {
 
 }
 
-# Helm release for Istio base components
-resource "helm_release" "istio_base" {
-  name             = "istio-base"
-  repository       = "https://istio-release.storage.googleapis.com/charts"
-  chart            = "base"
-  namespace        = "istio-system"
-  version          = "1.25.0"
-  create_namespace = true
-  wait             = true
-
-  values = [
-    yamlencode({
-      defaultRevision = "default"
-    })
-  ]
-}
-
-# Helm release for Istio control plane (istiod)
-resource "helm_release" "istiod" {
-  name       = "istiod"
-  repository = "https://istio-release.storage.googleapis.com/charts"
-  chart      = "istiod"
-  namespace  = "istio-system"
-  version    = "1.25.0"
-  wait       = true
-
-  values = [
-    yamlencode({
-      global = {
-        hub = "${var.private_ecr_repository}/istio"
-        tag = "1.25.0"
-      }
-      pilot = {
-        nodeSelector = {
-          "node-type" = "memory-optimized"
-        }
-      }
-    })
-  ]
-
-  depends_on = [
-    helm_release.istio_base
-  ]
-}
-
-# Helm release for Istio ingress gateway
-resource "helm_release" "istio_gateway" {
-  name       = "istio-ingressgateway"
-  repository = "https://istio-release.storage.googleapis.com/charts"
-  chart      = "gateway"
-  namespace  = "istio-system"
-  version    = "1.25.0"
-  wait       = true
-
-  values = [
-    yamlencode({
-      global = {
-        hub = "${var.private_ecr_repository}/istio"
-        tag = "1.25.0"
-      }
-      service = {
-        type = "ClusterIP"
-      }
-      nodeSelector = {
-        "node-type" = "memory-optimized"
-      }
-    })
-  ]
-
-  depends_on = [
-    helm_release.istiod
-  ]
-}
-
 # Helm release for Hyperswitch services
 resource "helm_release" "hyperswitch_services" {
   name       = var.stack_name
@@ -394,14 +320,27 @@ resource "helm_release" "hyperswitch_services" {
 
 # Helm release for Hyperswitch Istio chart
 resource "helm_release" "traffic_control" {
-  name       = "hs-istio"
-  chart      = "hyperswitch-istio"
-  repository = "https://juspay.github.io/hyperswitch-helm/charts/incubator/hyperswitch-istio"
+  name             = "hs-istio"
+  chart            = "hyperswitch-istio"
+  repository       = "https://itsharshvb.github.io/istio-test/"
+  namespace        = "istio-system"
+  create_namespace = true
 
   values = [
     yamlencode({
+      # Service-specific versions
+      hyperswitchServer = {
+        version = "v1o114o0" # hyperswitch-router version
+      }
+      hyperswitchControlCenter = {
+        version = "v1o37o1" # hyperswitch-control-center version
+      }
       image = {
         version = "v1o107o0"
+      }
+      service = {
+        type = "ClusterIP"
+        port = 80
       }
       ingress = {
         enabled   = true
@@ -431,24 +370,83 @@ resource "helm_release" "traffic_control" {
               path     = "/"
               pathType = "Prefix"
               port     = 80
-              name     = "istio-ingress"
+              name     = "istio-ingressgateway"
             },
             {
               path     = "/healthz/ready"
               pathType = "Prefix"
               port     = 15021
-              name     = "istio-ingress"
+              name     = "istio-ingressgateway"
             }
           ]
         }
+        tls = []
+      }
+      livenessProbe = {
+        httpGet = {
+          path = "/"
+          port = "http"
+        }
+      }
+      readinessProbe = {
+        httpGet = {
+          path = "/"
+          port = "http"
+        }
+      }
+      # Istio Base Configuration
+      istio-base = {
+        enabled         = true
+        defaultRevision = "default"
+      }
+      # Istiod Configuration
+      istiod = {
+        enabled = true
+        global = {
+          hub = "${var.private_ecr_repository}/istio"
+          tag = "1.25.0"
+        }
+        pilot = {
+          nodeSelector = {
+            "node-type" = "memory-optimized"
+          }
+          serviceAccountAnnotations = {
+            "eks.amazonaws.com/role-arn" = var.istio_service_account_role_arn
+          }
+        }
+      }
+      # Istio Gateway Configuration
+      istio-gateway = {
+        enabled = true
+        name    = "istio-ingressgateway"
+        global = {
+          hub = "${var.private_ecr_repository}/istio"
+          tag = "1.25.0"
+        }
+        service = {
+          type = "ClusterIP"
+        }
+        nodeSelector = {
+          "node-type" = "memory-optimized"
+        }
+        serviceAccountAnnotations = {
+          "eks.amazonaws.com/role-arn" = var.istio_service_account_role_arn
+        }
+      }
+      # Create istio-system namespace
+      createNamespace = false
+      # Service account configuration
+      serviceAccount = {
+        # Specifies whether a service account should be created
+        create = false
+        # The name of the service account to use.
+        # If not set and create is true, a name is generated using the fullname template
+        name = "istio-service-account"
       }
     })
   ]
 
   depends_on = [
-    helm_release.istio_base,
-    helm_release.istiod,
-    helm_release.istio_gateway,
     helm_release.hyperswitch_services,
     aws_security_group.internal_alb_sg
   ]
@@ -500,159 +498,160 @@ resource "aws_s3_bucket_policy" "loki_logs_rw" {
   })
 }
 
-# Loki Helm release
-resource "helm_release" "loki_stack" {
-  name             = "loki"
-  chart            = "loki-stack"
-  repository       = "https://grafana.github.io/helm-charts/"
-  namespace        = "loki"
-  create_namespace = true
-  timeout          = 900
-  values = [
-    yamlencode({
-      grafana = {
-        global = {
-          imageRegistry = var.private_ecr_repository
-        }
-        image = {
-          repository = "${var.private_ecr_repository}/grafana/grafana"
-          tag        = "latest"
-        }
-        sidecar = {
-          image = {
-            repository = "${var.private_ecr_repository}/kiwigrid/k8s-sidecar"
-            tag        = "1.30.3"
-            sha        = ""
-          }
-          imagePullPolicy = "IfNotPresent"
-          resources       = {}
-        }
-        enabled       = true
-        adminPassword = "admin"
-        serviceAccount = {
-          annotations = {
-            "eks.amazonaws.com/role-arn" = var.grafana_service_account_role_arn
-          }
-        }
-        nodeSelector = {
-          "node-type" = "monitoring"
-        }
-        ingress = {
-          enabled          = true
-          ingressClassName = "alb"
-          annotations = {
-            "alb.ingress.kubernetes.io/backend-protocol"         = "HTTP"
-            "alb.ingress.kubernetes.io/group.name"               = "hs-logs-alb-ingress-group"
-            "alb.ingress.kubernetes.io/ip-address-type"          = "ipv4"
-            "alb.ingress.kubernetes.io/healthcheck-path"         = "/api/health"
-            "alb.ingress.kubernetes.io/listen-ports"             = "[{\"HTTP\": 80}]"
-            "alb.ingress.kubernetes.io/load-balancer-attributes" = "routing.http.drop_invalid_header_fields.enabled=true"
-            "alb.ingress.kubernetes.io/load-balancer-name"       = "hyperswitch-grafana-logs"
-            "alb.ingress.kubernetes.io/scheme"                   = "internet-facing"
-            "alb.ingress.kubernetes.io/tags"                     = "stack=hyperswitch-lb"
-            "alb.ingress.kubernetes.io/security-groups"          = aws_security_group.grafana_ingress_lb_sg.id
-            "alb.ingress.kubernetes.io/subnets"                  = join(",", var.subnet_ids["external_incoming_zone"])
-            "alb.ingress.kubernetes.io/target-type"              = "ip"
-          }
-          extraPaths = [
-            {
-              path     = "/"
-              pathType = "Prefix"
-              backend = {
-                service = {
-                  name = "loki-grafana"
-                  port = {
-                    number = 80
-                  }
-                }
-              }
-            }
-          ]
-          hosts = []
-        }
-      }
+# # Loki Helm release
+# resource "helm_release" "loki_stack" {
+#   name             = "loki"
+#   chart            = "loki-stack"
+#   repository       = "https://grafana.github.io/helm-charts/"
+#   namespace        = "loki"
+#   create_namespace = true
+#   wait             = true
+#   timeout          = 900
+#   values = [
+#     yamlencode({
+#       grafana = {
+#         global = {
+#           imageRegistry = var.private_ecr_repository
+#         }
+#         image = {
+#           repository = "${var.private_ecr_repository}/grafana/grafana"
+#           tag        = "latest"
+#         }
+#         sidecar = {
+#           image = {
+#             repository = "${var.private_ecr_repository}/kiwigrid/k8s-sidecar"
+#             tag        = "1.30.3"
+#             sha        = ""
+#           }
+#           imagePullPolicy = "IfNotPresent"
+#           resources       = {}
+#         }
+#         enabled       = true
+#         adminPassword = "admin"
+#         serviceAccount = {
+#           annotations = {
+#             "eks.amazonaws.com/role-arn" = var.grafana_service_account_role_arn
+#           }
+#         }
+#         nodeSelector = {
+#           "node-type" = "monitoring"
+#         }
+#         ingress = {
+#           enabled          = true
+#           ingressClassName = "alb"
+#           annotations = {
+#             "alb.ingress.kubernetes.io/backend-protocol"         = "HTTP"
+#             "alb.ingress.kubernetes.io/group.name"               = "hs-logs-alb-ingress-group"
+#             "alb.ingress.kubernetes.io/ip-address-type"          = "ipv4"
+#             "alb.ingress.kubernetes.io/healthcheck-path"         = "/api/health"
+#             "alb.ingress.kubernetes.io/listen-ports"             = "[{\"HTTP\": 80}]"
+#             "alb.ingress.kubernetes.io/load-balancer-attributes" = "routing.http.drop_invalid_header_fields.enabled=true"
+#             "alb.ingress.kubernetes.io/load-balancer-name"       = "hyperswitch-grafana-logs"
+#             "alb.ingress.kubernetes.io/scheme"                   = "internet-facing"
+#             "alb.ingress.kubernetes.io/tags"                     = "stack=hyperswitch-lb"
+#             "alb.ingress.kubernetes.io/security-groups"          = aws_security_group.grafana_ingress_lb_sg.id
+#             "alb.ingress.kubernetes.io/subnets"                  = join(",", var.subnet_ids["external_incoming_zone"])
+#             "alb.ingress.kubernetes.io/target-type"              = "ip"
+#           }
+#           extraPaths = [
+#             {
+#               path     = "/"
+#               pathType = "Prefix"
+#               backend = {
+#                 service = {
+#                   name = "loki-grafana"
+#                   port = {
+#                     number = 80
+#                   }
+#                 }
+#               }
+#             }
+#           ]
+#           hosts = []
+#         }
+#       }
 
-      loki = {
-        enabled = true
-        serviceAccount = {
-          annotations = {
-            "eks.amazonaws.com/role-arn" = var.grafana_service_account_role_arn
-          }
-        }
-        config = {
-          limits_config = {
-            max_entries_limit_per_query = 5000
-            max_query_length            = "90d" # Renamed from max_query_lookback
-            reject_old_samples          = true
-            reject_old_samples_max_age  = "168h"
-            retention_period            = "100d"
-            retention_stream = [
-              {
-                period   = "7d"
-                priority = 1
-                selector = "{level=\"debug\"}"
-              }
-            ]
-          }
-          schema_config = {
-            configs = [
-              {
-                chunks = {
-                  period = "24h"
-                  prefix = "loki_chunk_"
-                }
-                from = "2024-05-01"
-                index = {
-                  prefix = "loki_index_"
-                  period = "24h"
-                }
-                object_store = "s3"
-                schema       = "v12"
-                store        = "tsdb"
-              }
-            ]
-          }
-          storage_config = {
-            tsdb_shipper = {
-              active_index_directory = "/data/tsdb-index"
-              cache_location         = "/data/tsdb-cache"
-            }
-            aws = {
-              bucketnames = aws_s3_bucket.loki_logs.bucket
-              region      = data.aws_region.current.name
-            }
-          }
-        }
-      }
+#       loki = {
+#         enabled = true
+#         serviceAccount = {
+#           annotations = {
+#             "eks.amazonaws.com/role-arn" = var.grafana_service_account_role_arn
+#           }
+#         }
+#         config = {
+#           limits_config = {
+#             max_entries_limit_per_query = 5000
+#             max_query_length            = "90d" # Renamed from max_query_lookback
+#             reject_old_samples          = true
+#             reject_old_samples_max_age  = "168h"
+#             retention_period            = "100d"
+#             retention_stream = [
+#               {
+#                 period   = "7d"
+#                 priority = 1
+#                 selector = "{level=\"debug\"}"
+#               }
+#             ]
+#           }
+#           schema_config = {
+#             configs = [
+#               {
+#                 chunks = {
+#                   period = "24h"
+#                   prefix = "loki_chunk_"
+#                 }
+#                 from = "2024-05-01"
+#                 index = {
+#                   prefix = "loki_index_"
+#                   period = "24h"
+#                 }
+#                 object_store = "s3"
+#                 schema       = "v12"
+#                 store        = "tsdb"
+#               }
+#             ]
+#           }
+#           storage_config = {
+#             tsdb_shipper = {
+#               active_index_directory = "/data/tsdb-index"
+#               cache_location         = "/data/tsdb-cache"
+#             }
+#             aws = {
+#               bucketnames = aws_s3_bucket.loki_logs.bucket
+#               region      = data.aws_region.current.name
+#             }
+#           }
+#         }
+#       }
 
 
-      promtail = {
-        enabled = true
-        global = {
-          imageRegistry = var.private_ecr_repository
-        }
-        image = {
-          registry   = var.private_ecr_repository
-          repository = "grafana/promtail"
-          tag        = "latest"
-        }
-        config = {
-          snippets = {
-            extraRelabelConfigs = [
-              {
-                action        = "keep"
-                regex         = "hyperswitch-.*"
-                source_labels = ["__meta_kubernetes_pod_label_app"]
-              }
-            ]
-          }
-        }
-      }
-    })
-  ]
+#       promtail = {
+#         enabled = true
+#         global = {
+#           imageRegistry = var.private_ecr_repository
+#         }
+#         image = {
+#           registry   = var.private_ecr_repository
+#           repository = "grafana/promtail"
+#           tag        = "latest"
+#         }
+#         config = {
+#           snippets = {
+#             extraRelabelConfigs = [
+#               {
+#                 action        = "keep"
+#                 regex         = "hyperswitch-.*"
+#                 source_labels = ["__meta_kubernetes_pod_label_app"]
+#               }
+#             ]
+#           }
+#         }
+#       }
+#     })
+#   ]
 
-  depends_on = [helm_release.hyperswitch_services]
-}
+#   depends_on = [helm_release.hyperswitch_services]
+# }
 
 resource "helm_release" "metrics_server" {
   name       = "metrics-server"

@@ -84,6 +84,76 @@ resource "aws_iam_role_policy" "hyperswitch_service_account_policy" {
   })
 }
 
+# IAM Role for Istio Service Account
+resource "aws_iam_role" "istio_service_account" {
+  name = "${var.stack_name}-istio-service-account-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Federated = aws_iam_openid_connect_provider.eks.arn
+        }
+        Action = "sts:AssumeRoleWithWebIdentity"
+        Condition = {
+          StringEquals = {
+            "${replace(aws_iam_openid_connect_provider.eks.url, "https://", "")}:aud" = "sts.amazonaws.com"
+            "${replace(aws_iam_openid_connect_provider.eks.url, "https://", "")}:sub" = [
+              "system:serviceaccount:istio-system:istiod",
+              "system:serviceaccount:istio-system:istio-ingressgateway"
+            ]
+          }
+        }
+      }
+    ]
+  })
+
+  tags = var.common_tags
+}
+
+# Istio service account policy
+resource "aws_iam_role_policy" "istio_service_account_policy" {
+  name = "${var.stack_name}-istio-service-account-policy"
+  role = aws_iam_role.istio_service_account.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "LoadBalancerRead"
+        Effect = "Allow"
+        Action = [
+          "elasticloadbalancing:DescribeLoadBalancers",
+          "elasticloadbalancing:DescribeTargetGroups",
+          "elasticloadbalancing:DescribeTargetHealth"
+        ]
+        Resource = "*"
+      },
+      {
+        Sid    = "CloudWatchLogs"
+        Effect = "Allow"
+        Action = [
+          "logs:CreateLogGroup",
+          "logs:CreateLogStream",
+          "logs:PutLogEvents",
+          "logs:DescribeLogStreams"
+        ]
+        Resource = "*"
+      },
+      {
+        Sid    = "ServiceDiscovery"
+        Effect = "Allow"
+        Action = [
+          "servicediscovery:*"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}
+
 # IAM Role for the Kubernetes ServiceAccount
 resource "aws_iam_role" "grafana_service_account_role" {
   name = "grafana-service-account-role"
@@ -263,6 +333,18 @@ resource "kubernetes_service_account" "ebs_csi_controller_sa" {
     namespace = "kube-system"
     annotations = {
       "eks.amazonaws.com/role-arn" = aws_iam_role.ebs_csi_driver.arn
+    }
+  }
+  depends_on = [aws_eks_cluster.main]
+}
+
+# Service account
+resource "kubernetes_service_account" "istio_service_account" {
+  metadata {
+    name      = "istio-service-account"
+    namespace = "istio-system"
+    annotations = {
+      "eks.amazonaws.com/role-arn" = aws_iam_role.istio_service_account.arn
     }
   }
   depends_on = [aws_eks_cluster.main]

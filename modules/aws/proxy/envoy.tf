@@ -2,10 +2,13 @@
 locals {
   envoy_config_content = replace(
     replace(
-      file("${path.module}/configurations/envoy/envoy.yaml"),
-      "{{external_loadbalancer_dns}}", var.external_alb_distribution_domain_name
+      replace(
+        file("${path.module}/configurations/envoy/envoy.yaml"),
+        "{{external_loadbalancer_dns}}", var.external_alb_distribution_domain_name
+      ),
+      "{{internal_loadbalancer_dns}}", var.internal_alb_domain_name
     ),
-    "{{internal_loadbalancer_dns}}", var.internal_alb_domain_name
+    "{{eks_cluster_name}}", "${var.stack_name}-cluster"
   )
 
   envoy_userdata_content = replace(

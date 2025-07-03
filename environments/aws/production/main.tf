@@ -187,6 +187,7 @@ module "helm" {
   ebs_csi_driver_service_account_name  = module.eks.ebs_csi_driver_service_account_name
   hyperswitch_kms_key_id               = module.security.hyperswitch_kms_key_id
   hyperswitch_service_account_role_arn = module.eks.hyperswitch_service_account_role_arn
+  istio_service_account_role_arn       = module.eks.istio_service_account_role_arn
   grafana_service_account_role_arn     = module.eks.grafana_service_account_role_arn
   kms_secrets                          = module.security.kms_secrets
   locker_enabled                       = var.locker_enabled
