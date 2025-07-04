@@ -86,24 +86,6 @@ resource "aws_security_group_rule" "internal_lb_from_envoy_ingress" {
   description              = "Allow traffic from Envoy"
 }
 
-# Squid Internal Load Balancer Security Group
-resource "aws_security_group" "squid_internal_lb_sg" {
-  name                   = "${var.stack_name}-squid-internal-lb-sg"
-  description            = "Security group for Squid internal ALB"
-  vpc_id                 = var.vpc_id
-  revoke_rules_on_delete = true
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = []
-  }
-
-  tags = {
-    Name = "${var.stack_name}-squid-internal-lb-sg"
-  }
-}
 
 # Allow EKS cluster to connect to Squid ALB
 resource "aws_security_group_rule" "cluster_to_squid_lb" {
@@ -112,7 +94,7 @@ resource "aws_security_group_rule" "cluster_to_squid_lb" {
   to_port                  = 3128
   protocol                 = "tcp"
   security_group_id        = var.eks_cluster_security_group_id
-  source_security_group_id = aws_security_group.squid_internal_lb_sg.id
+  source_security_group_id = var.squid_internal_lb_sg_id
   description              = "Allow outbound traffic to Squid proxy"
 }
 
@@ -121,7 +103,7 @@ resource "aws_security_group_rule" "squid_lb_from_cluster" {
   from_port                = 3128
   to_port                  = 3128
   protocol                 = "tcp"
-  security_group_id        = aws_security_group.squid_internal_lb_sg.id
+  security_group_id        = var.squid_internal_lb_sg_id
   source_security_group_id = var.eks_cluster_security_group_id
   description              = "Allow traffic from EKS cluster security group"
 }
@@ -151,7 +133,7 @@ resource "aws_security_group_rule" "squid_lb_to_asg" {
   from_port                = 3128
   to_port                  = 3128
   protocol                 = "tcp"
-  security_group_id        = aws_security_group.squid_internal_lb_sg.id
+  security_group_id        = var.squid_internal_lb_sg_id
   source_security_group_id = aws_security_group.squid_asg_sg.id
   description              = "Allow traffic to Squid ASG instances"
 }
@@ -162,7 +144,7 @@ resource "aws_security_group_rule" "squid_asg_from_lb" {
   to_port                  = 3128
   protocol                 = "tcp"
   security_group_id        = aws_security_group.squid_asg_sg.id
-  source_security_group_id = aws_security_group.squid_internal_lb_sg.id
+  source_security_group_id = var.squid_internal_lb_sg_id
   description              = "Allow traffic from Squid Internal LB"
 }
 

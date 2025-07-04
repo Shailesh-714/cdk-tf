@@ -10,24 +10,12 @@ locals {
   )
 }
 
-# Network Load Balancer for Squid
-resource "aws_lb" "squid_nlb" {
-  name               = "${var.stack_name}-squid-nlb"
-  internal           = true
-  load_balancer_type = "network"
-  security_groups    = [aws_security_group.squid_internal_lb_sg.id]
-  subnets            = var.subnet_ids["service_layer_zone"]
-
-  enable_deletion_protection = false
-
-  tags = merge(var.common_tags, {
-    Name = "${var.stack_name}-squid-nlb"
-  })
-}
 
 # S3 Bucket for Squid Logs
 resource "aws_s3_bucket" "squid_logs_bucket" {
   bucket = "${var.stack_name}-squid-proxy-logs-${data.aws_caller_identity.current.account_id}-${data.aws_region.current.name}"
+
+  force_destroy = true
 
   tags = merge(var.common_tags, {
     Name = "${var.stack_name}-squid-proxy-logs-${data.aws_caller_identity.current.account_id}-${data.aws_region.current.name}"
@@ -62,8 +50,6 @@ resource "aws_s3_object" "squid_config_files" {
   bucket = aws_s3_bucket.proxy_config.bucket
   key    = "squid/${each.value}"
   source = "${path.module}/configurations/squid/${each.value}"
-
-  depends_on = [aws_lb.squid_nlb]
 }
 
 # IAM Role for Squid Instances
@@ -205,7 +191,7 @@ resource "aws_autoscaling_group" "squid_asg" {
     version = "$Latest"
   }
 
-  target_group_arns = [aws_lb_target_group.squid_target_group.arn]
+  target_group_arns = [var.squid_target_group_arn]
   health_check_type = "ELB"
 
   depends_on = [aws_s3_object.squid_config_files]
@@ -226,39 +212,7 @@ resource "aws_autoscaling_group" "squid_asg" {
   }
 }
 
-# Target Group for Squid
-resource "aws_lb_target_group" "squid_target_group" {
-  name     = "${var.stack_name}-squid-tg"
-  port     = 3128
-  protocol = "TCP"
-  vpc_id   = var.vpc_id
 
-  health_check {
-    enabled             = true
-    healthy_threshold   = 2
-    unhealthy_threshold = 2
-    timeout             = 10
-    interval            = 30
-    port                = "traffic-port"
-    protocol            = "TCP"
-  }
-
-  tags = merge(var.common_tags, {
-    Name = "${var.stack_name}-squid-tg"
-  })
-}
-
-# NLB Listener for Squid
-resource "aws_lb_listener" "squid_listener_tcp" {
-  load_balancer_arn = aws_lb.squid_nlb.arn
-  port              = "3128"
-  protocol          = "TCP"
-
-  default_action {
-    type             = "forward"
-    target_group_arn = aws_lb_target_group.squid_target_group.arn
-  }
-}
 
 
 

@@ -58,3 +58,13 @@ variable "envoy_target_group_arn" {
   description = "ARN of the Envoy target group"
   type        = string
 }
+
+variable "squid_target_group_arn" {
+  description = "ARN of the Squid target group"
+  type        = string
+}
+
+variable "squid_internal_lb_sg_id" {
+  description = "ID of the Squid Internal Load Balancer Security Group"
+  type        = string
+}

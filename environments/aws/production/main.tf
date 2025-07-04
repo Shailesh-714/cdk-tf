@@ -198,6 +198,7 @@ module "helm" {
   rds_cluster_reader_endpoint          = module.rds.rds_cluster_reader_endpoint
   elasticache_cluster_endpoint_address = module.elasticache.elasticache_cluster_endpoint_address
   sdk_distribution_domain_name         = module.sdk.sdk_distribution_domain_name
+  squid_nlb_dns_name                   = module.loadbalancers.squid_nlb_dns_name
 }
 
 module "proxy" {
@@ -215,4 +216,6 @@ module "proxy" {
   internal_alb_domain_name              = module.helm.internal_alb_dns_name
   external_alb_distribution_domain_name = module.loadbalancers.external_alb_distribution_domain_name
   envoy_target_group_arn                = module.loadbalancers.envoy_target_group_arn
+  squid_target_group_arn                = module.loadbalancers.squid_target_group_arn
+  squid_internal_lb_sg_id               = module.loadbalancers.squid_internal_lb_sg_id
 }

@@ -96,3 +96,4 @@ notes:
 
 - log-stack.ts is pending (open-search-service)
 - add input variables as trigger for encryption lambda
+- add labels for istio injection in namespaces

@@ -12,6 +12,12 @@ data "aws_eks_cluster_auth" "main" {
   name = var.eks_cluster_name
 }
 
+provider "kubernetes" {
+  host                   = var.eks_cluster_endpoint
+  cluster_ca_certificate = base64decode(var.eks_cluster_ca_certificate)
+  token                  = data.aws_eks_cluster_auth.main.token
+}
+
 provider "helm" {
   kubernetes = {
     host                   = var.eks_cluster_endpoint
@@ -55,15 +61,121 @@ resource "helm_release" "alb_controller" {
 
 }
 
+# Helm release for Istio base components
+resource "helm_release" "istio_base" {
+  name             = "istio-base"
+  repository       = "https://istio-release.storage.googleapis.com/charts"
+  chart            = "base"
+  namespace        = "istio-system"
+  version          = "1.25.0"
+  create_namespace = true
+  wait             = true
+
+  values = [
+    yamlencode({
+      defaultRevision = "default"
+    })
+  ]
+}
+
+# Helm release for Istio control plane (istiod)
+resource "helm_release" "istiod" {
+  name       = "istiod"
+  repository = "https://istio-release.storage.googleapis.com/charts"
+  chart      = "istiod"
+  namespace  = "istio-system"
+  version    = "1.25.0"
+  wait       = true
+
+  values = [
+    yamlencode({
+      global = {
+        hub = "${var.private_ecr_repository}/istio"
+        tag = "1.25.0"
+        proxy = {
+          # This ensures init containers can access external services
+          holdApplicationUntilProxyStarts = true
+        }
+      }
+      pilot = {
+        nodeSelector = {
+          "node-type" = "memory-optimized"
+        }
+        serviceAccount = {
+          create = true
+          name   = "istiod"
+          annotations = {
+            "eks.amazonaws.com/role-arn" = var.istio_service_account_role_arn
+          }
+        }
+      }
+      meshConfig = {
+        defaultConfig = {
+          # Ensures proxy starts before application containers
+          holdApplicationUntilProxyStarts = true
+        }
+      }
+    })
+  ]
+
+  depends_on = [
+    helm_release.istio_base
+  ]
+}
+
+# Helm release for Istio ingress gateway
+resource "helm_release" "istio_gateway" {
+  name       = "istio-ingressgateway"
+  repository = "https://istio-release.storage.googleapis.com/charts"
+  chart      = "gateway"
+  namespace  = "istio-system"
+  version    = "1.25.0"
+  wait       = true
+
+  values = [
+    yamlencode({
+      global = {
+        hub = "${var.private_ecr_repository}/istio"
+        tag = "1.25.0"
+      }
+      service = {
+        type = "ClusterIP"
+      }
+      nodeSelector = {
+        "node-type" = "memory-optimized"
+      }
+      serviceAccount = {
+        create = true
+        name   = "istio-ingressgateway"
+        annotations = {
+          "eks.amazonaws.com/role-arn" = var.istio_service_account_role_arn
+        }
+      }
+    })
+  ]
+
+  depends_on = [
+    helm_release.istiod
+  ]
+}
+
+# Create namespace with Istio injection enabled
+resource "kubernetes_namespace" "hyperswitch" {
+  metadata {
+    name = "hyperswitch"
+    labels = {
+      "istio-injection" = "enabled"
+    }
+  }
+}
+
 # Helm release for Hyperswitch services
 resource "helm_release" "hyperswitch_services" {
   name       = var.stack_name
-  repository = "https://juspay.github.io/hyperswitch-helm/"
+  repository = "https://shailesh-714.github.io/mature-helm-charts/"
   chart      = "hyperswitch-stack"
-  version    = "0.2.4"
+  version    = "0.2.5"
   namespace  = "hyperswitch"
-
-  create_namespace = true
 
   wait = false
 
@@ -314,7 +426,9 @@ resource "helm_release" "hyperswitch_services" {
   ]
 
   depends_on = [
-    helm_release.alb_controller
+    helm_release.alb_controller,
+    helm_release.istio_gateway,
+    kubernetes_namespace.hyperswitch
   ]
 }
 
@@ -396,42 +510,15 @@ resource "helm_release" "traffic_control" {
       }
       # Istio Base Configuration
       istio-base = {
-        enabled         = true
-        defaultRevision = "default"
+        enabled = false
       }
       # Istiod Configuration
       istiod = {
-        enabled = true
-        global = {
-          hub = "${var.private_ecr_repository}/istio"
-          tag = "1.25.0"
-        }
-        pilot = {
-          nodeSelector = {
-            "node-type" = "memory-optimized"
-          }
-          serviceAccountAnnotations = {
-            "eks.amazonaws.com/role-arn" = var.istio_service_account_role_arn
-          }
-        }
+        enabled = false
       }
       # Istio Gateway Configuration
       istio-gateway = {
-        enabled = true
-        name    = "istio-ingressgateway"
-        global = {
-          hub = "${var.private_ecr_repository}/istio"
-          tag = "1.25.0"
-        }
-        service = {
-          type = "ClusterIP"
-        }
-        nodeSelector = {
-          "node-type" = "memory-optimized"
-        }
-        serviceAccountAnnotations = {
-          "eks.amazonaws.com/role-arn" = var.istio_service_account_role_arn
-        }
+        enabled = false
       }
       # Create istio-system namespace
       createNamespace = false
@@ -441,13 +528,16 @@ resource "helm_release" "traffic_control" {
         create = false
         # The name of the service account to use.
         # If not set and create is true, a name is generated using the fullname template
-        name = "istio-service-account"
+        name = ""
       }
     })
   ]
 
   depends_on = [
     helm_release.hyperswitch_services,
+    helm_release.istio_base,
+    helm_release.istiod,
+    helm_release.istio_gateway,
     aws_security_group.internal_alb_sg
   ]
 }

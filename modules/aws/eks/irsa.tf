@@ -338,14 +338,3 @@ resource "kubernetes_service_account" "ebs_csi_controller_sa" {
   depends_on = [aws_eks_cluster.main]
 }
 
-# Service account
-resource "kubernetes_service_account" "istio_service_account" {
-  metadata {
-    name      = "istio-service-account"
-    namespace = "istio-system"
-    annotations = {
-      "eks.amazonaws.com/role-arn" = aws_iam_role.istio_service_account.arn
-    }
-  }
-  depends_on = [aws_eks_cluster.main]
-}

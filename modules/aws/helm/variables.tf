@@ -130,3 +130,9 @@ variable "sdk_distribution_domain_name" {
   description = "Domain name of the SDK distribution"
   type        = string
 }
+
+variable "squid_nlb_dns_name" {
+  description = "DNS name of the Squid NLB"
+  type        = string
+
+}
