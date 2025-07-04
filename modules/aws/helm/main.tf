@@ -159,6 +159,115 @@ resource "helm_release" "istio_gateway" {
   ]
 }
 
+# Helm release for Hyperswitch Istio chart
+resource "helm_release" "traffic_control" {
+  name             = "hs-istio"
+  chart            = "hyperswitch-istio"
+  repository       = "https://shailesh-714.github.io/istio-test/"
+  namespace        = "istio-system"
+  create_namespace = true
+
+  values = [
+    yamlencode({
+      # Service-specific versions
+      hyperswitchServer = {
+        version = "v1o114o0" # hyperswitch-router version
+      }
+      hyperswitchControlCenter = {
+        version = "v1o37o1" # hyperswitch-control-center version
+      }
+      image = {
+        version = "v1o107o0"
+      }
+      service = {
+        type = "ClusterIP"
+        port = 80
+      }
+      ingress = {
+        enabled   = true
+        className = "alb"
+        annotations = {
+          "alb.ingress.kubernetes.io/backend-protocol"             = "HTTP"
+          "alb.ingress.kubernetes.io/backend-protocol-version"     = "HTTP1"
+          "alb.ingress.kubernetes.io/group.name"                   = "hyperswitch-istio-app-alb-ingress-group"
+          "alb.ingress.kubernetes.io/healthcheck-interval-seconds" = "5"
+          "alb.ingress.kubernetes.io/healthcheck-path"             = "/healthz/ready"
+          "alb.ingress.kubernetes.io/healthcheck-port"             = "15021"
+          "alb.ingress.kubernetes.io/healthcheck-protocol"         = "HTTP"
+          "alb.ingress.kubernetes.io/healthcheck-timeout-seconds"  = "2"
+          "alb.ingress.kubernetes.io/healthy-threshold-count"      = "5"
+          "alb.ingress.kubernetes.io/ip-address-type"              = "ipv4"
+          "alb.ingress.kubernetes.io/listen-ports"                 = "[{\"HTTP\": 80}]"
+          "alb.ingress.kubernetes.io/load-balancer-attributes"     = "routing.http.drop_invalid_header_fields.enabled=true,routing.http.xff_client_port.enabled=true,routing.http.preserve_host_header.enabled=true"
+          "alb.ingress.kubernetes.io/scheme"                       = "internal"
+          "alb.ingress.kubernetes.io/security-groups"              = aws_security_group.internal_alb_sg.id
+          "alb.ingress.kubernetes.io/subnets"                      = join(",", var.subnet_ids["istio_lb_transit_zone"])
+          "alb.ingress.kubernetes.io/target-type"                  = "ip"
+          "alb.ingress.kubernetes.io/unhealthy-threshold-count"    = "3"
+        }
+        hosts = {
+          paths = [
+            {
+              path     = "/"
+              pathType = "Prefix"
+              port     = 80
+              name     = "istio-ingressgateway"
+            },
+            {
+              path     = "/healthz/ready"
+              pathType = "Prefix"
+              port     = 15021
+              name     = "istio-ingressgateway"
+            }
+          ]
+        }
+        tls = []
+      }
+      livenessProbe = {
+        httpGet = {
+          path = "/"
+          port = "http"
+        }
+      }
+      readinessProbe = {
+        httpGet = {
+          path = "/"
+          port = "http"
+        }
+      }
+      # Istio Base Configuration
+      istio-base = {
+        enabled = false
+      }
+      # Istiod Configuration
+      istiod = {
+        enabled = false
+      }
+      # Istio Gateway Configuration
+      istio-gateway = {
+        enabled = false
+      }
+      # Create istio-system namespace
+      createNamespace = false
+      # Service account configuration
+      serviceAccount = {
+        # Specifies whether a service account should be created
+        create = false
+        # The name of the service account to use.
+        # If not set and create is true, a name is generated using the fullname template
+        name = ""
+      }
+    })
+  ]
+
+  depends_on = [
+    helm_release.istio_base,
+    helm_release.istiod,
+    helm_release.istio_gateway,
+    aws_security_group.internal_alb_sg
+  ]
+}
+
 # Create namespace with Istio injection enabled
 resource "kubernetes_namespace" "hyperswitch" {
   metadata {
@@ -174,7 +283,7 @@ resource "helm_release" "hyperswitch_services" {
   name       = var.stack_name
   repository = "https://shailesh-714.github.io/mature-helm-charts/"
   chart      = "hyperswitch-stack"
-  version    = "0.2.5"
+  version    = "0.2.6"
   namespace  = "hyperswitch"
 
   wait = false
@@ -427,120 +536,12 @@ resource "helm_release" "hyperswitch_services" {
 
   depends_on = [
     helm_release.alb_controller,
-    helm_release.istio_gateway,
+    helm_release.traffic_control,
     kubernetes_namespace.hyperswitch
   ]
 }
 
-# Helm release for Hyperswitch Istio chart
-resource "helm_release" "traffic_control" {
-  name             = "hs-istio"
-  chart            = "hyperswitch-istio"
-  repository       = "https://shailesh-714.github.io/istio-test/"
-  namespace        = "istio-system"
-  create_namespace = true
 
-  values = [
-    yamlencode({
-      # Service-specific versions
-      hyperswitchServer = {
-        version = "v1o114o0" # hyperswitch-router version
-      }
-      hyperswitchControlCenter = {
-        version = "v1o37o1" # hyperswitch-control-center version
-      }
-      image = {
-        version = "v1o107o0"
-      }
-      service = {
-        type = "ClusterIP"
-        port = 80
-      }
-      ingress = {
-        enabled   = true
-        className = "alb"
-        annotations = {
-          "alb.ingress.kubernetes.io/backend-protocol"             = "HTTP"
-          "alb.ingress.kubernetes.io/backend-protocol-version"     = "HTTP1"
-          "alb.ingress.kubernetes.io/group.name"                   = "hyperswitch-istio-app-alb-ingress-group"
-          "alb.ingress.kubernetes.io/healthcheck-interval-seconds" = "5"
-          "alb.ingress.kubernetes.io/healthcheck-path"             = "/healthz/ready"
-          "alb.ingress.kubernetes.io/healthcheck-port"             = "15021"
-          "alb.ingress.kubernetes.io/healthcheck-protocol"         = "HTTP"
-          "alb.ingress.kubernetes.io/healthcheck-timeout-seconds"  = "2"
-          "alb.ingress.kubernetes.io/healthy-threshold-count"      = "5"
-          "alb.ingress.kubernetes.io/ip-address-type"              = "ipv4"
-          "alb.ingress.kubernetes.io/listen-ports"                 = "[{\"HTTP\": 80}]"
-          "alb.ingress.kubernetes.io/load-balancer-attributes"     = "routing.http.drop_invalid_header_fields.enabled=true,routing.http.xff_client_port.enabled=true,routing.http.preserve_host_header.enabled=true"
-          "alb.ingress.kubernetes.io/scheme"                       = "internal"
-          "alb.ingress.kubernetes.io/security-groups"              = aws_security_group.internal_alb_sg.id
-          "alb.ingress.kubernetes.io/subnets"                      = join(",", var.subnet_ids["istio_lb_transit_zone"])
-          "alb.ingress.kubernetes.io/target-type"                  = "ip"
-          "alb.ingress.kubernetes.io/unhealthy-threshold-count"    = "3"
-        }
-        hosts = {
-          paths = [
-            {
-              path     = "/"
-              pathType = "Prefix"
-              port     = 80
-              name     = "istio-ingressgateway"
-            },
-            {
-              path     = "/healthz/ready"
-              pathType = "Prefix"
-              port     = 15021
-              name     = "istio-ingressgateway"
-            }
-          ]
-        }
-        tls = []
-      }
-      livenessProbe = {
-        httpGet = {
-          path = "/"
-          port = "http"
-        }
-      }
-      readinessProbe = {
-        httpGet = {
-          path = "/"
-          port = "http"
-        }
-      }
-      # Istio Base Configuration
-      istio-base = {
-        enabled = false
-      }
-      # Istiod Configuration
-      istiod = {
-        enabled = false
-      }
-      # Istio Gateway Configuration
-      istio-gateway = {
-        enabled = false
-      }
-      # Create istio-system namespace
-      createNamespace = false
-      # Service account configuration
-      serviceAccount = {
-        # Specifies whether a service account should be created
-        create = false
-        # The name of the service account to use.
-        # If not set and create is true, a name is generated using the fullname template
-        name = ""
-      }
-    })
-  ]
-
-  depends_on = [
-    helm_release.hyperswitch_services,
-    helm_release.istio_base,
-    helm_release.istiod,
-    helm_release.istio_gateway,
-    aws_security_group.internal_alb_sg
-  ]
-}
 
 # Istio Internal ALB Data Source
 data "aws_lb" "internal_alb" {

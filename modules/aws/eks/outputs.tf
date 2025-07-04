@@ -15,7 +15,7 @@ output "eks_cluster_ca_certificate" {
 
 output "eks_cluster_security_group_id" {
   description = "The security group ID of the EKS cluster"
-  value       = aws_security_group.eks_cluster_sg.id
+  value       = aws_eks_cluster.main.vpc_config[0].cluster_security_group_id
 }
 
 output "hyperswitch_service_account_role_arn" {

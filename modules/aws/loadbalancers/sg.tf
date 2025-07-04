@@ -28,6 +28,12 @@ resource "aws_security_group" "external_lb_sg" {
   })
 }
 
+# CloudFront IP Ranges Data Source
+data "aws_ip_ranges" "cloudfront" {
+  services = ["CLOUDFRONT"]
+  regions  = ["GLOBAL"] # CloudFront IPs are global
+}
+
 
 # Squid Internal Load Balancer Security Group
 resource "aws_security_group" "squid_internal_lb_sg" {

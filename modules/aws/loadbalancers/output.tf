@@ -27,3 +27,9 @@ output "squid_internal_lb_sg_id" {
   value       = aws_security_group.squid_internal_lb_sg.id
   description = "ID of the Squid Internal Load Balancer Security Group"
 }
+
+output "cloudfront_ip_ranges" {
+  value       = data.aws_ip_ranges.cloudfront.cidr_blocks
+  description = "CloudFront IP ranges for security group rules"
+
+}
