@@ -165,6 +165,7 @@ resource "helm_release" "traffic_control" {
   chart            = "hyperswitch-istio"
   repository       = "https://shailesh-714.github.io/istio-test/"
   namespace        = "istio-system"
+  version          = "0.4.0"
   create_namespace = true
 
   values = [
@@ -309,6 +310,7 @@ resource "helm_release" "hyperswitch_services" {
         services = {
           router = {
             image = "${var.private_ecr_repository}/juspaydotin/hyperswitch-router:v1.114.0-standalone"
+            host  = "https://${var.external_alb_distribution_domain_name}/api"
           }
           producer = {
             image = "${var.private_ecr_repository}/juspaydotin/hyperswitch-producer:v1.114.0-standalone"

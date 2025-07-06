@@ -172,33 +172,34 @@ module "eks" {
 module "helm" {
   source = "../../../modules/aws/helm"
 
-  stack_name                           = var.stack_name
-  common_tags                          = local.common_tags
-  vpc_id                               = module.vpc.vpc_id
-  subnet_ids                           = module.vpc.subnet_ids
-  vpn_ips                              = var.vpn_ips
-  sdk_version                          = local.sdk_version
-  private_ecr_repository               = local.private_ecr_repository
-  eks_cluster_name                     = module.eks.eks_cluster_name
-  eks_cluster_endpoint                 = module.eks.eks_cluster_endpoint
-  eks_cluster_ca_certificate           = module.eks.eks_cluster_ca_certificate
-  eks_cluster_security_group_id        = module.eks.eks_cluster_security_group_id
-  alb_controller_service_account_name  = module.eks.alb_controller_service_account_name
-  ebs_csi_driver_service_account_name  = module.eks.ebs_csi_driver_service_account_name
-  hyperswitch_kms_key_id               = module.security.hyperswitch_kms_key_id
-  hyperswitch_service_account_role_arn = module.eks.hyperswitch_service_account_role_arn
-  istio_service_account_role_arn       = module.eks.istio_service_account_role_arn
-  grafana_service_account_role_arn     = module.eks.grafana_service_account_role_arn
-  kms_secrets                          = module.security.kms_secrets
-  locker_enabled                       = var.locker_enabled
-  locker_public_key                    = var.locker_public_key
-  tenant_private_key                   = var.tenant_private_key
-  db_password                          = var.db_password
-  rds_cluster_endpoint                 = module.rds.rds_cluster_endpoint
-  rds_cluster_reader_endpoint          = module.rds.rds_cluster_reader_endpoint
-  elasticache_cluster_endpoint_address = module.elasticache.elasticache_cluster_endpoint_address
-  sdk_distribution_domain_name         = module.sdk.sdk_distribution_domain_name
-  squid_nlb_dns_name                   = module.loadbalancers.squid_nlb_dns_name
+  stack_name                            = var.stack_name
+  common_tags                           = local.common_tags
+  vpc_id                                = module.vpc.vpc_id
+  subnet_ids                            = module.vpc.subnet_ids
+  vpn_ips                               = var.vpn_ips
+  sdk_version                           = local.sdk_version
+  private_ecr_repository                = local.private_ecr_repository
+  eks_cluster_name                      = module.eks.eks_cluster_name
+  eks_cluster_endpoint                  = module.eks.eks_cluster_endpoint
+  eks_cluster_ca_certificate            = module.eks.eks_cluster_ca_certificate
+  eks_cluster_security_group_id         = module.eks.eks_cluster_security_group_id
+  alb_controller_service_account_name   = module.eks.alb_controller_service_account_name
+  ebs_csi_driver_service_account_name   = module.eks.ebs_csi_driver_service_account_name
+  hyperswitch_kms_key_id                = module.security.hyperswitch_kms_key_id
+  hyperswitch_service_account_role_arn  = module.eks.hyperswitch_service_account_role_arn
+  istio_service_account_role_arn        = module.eks.istio_service_account_role_arn
+  grafana_service_account_role_arn      = module.eks.grafana_service_account_role_arn
+  kms_secrets                           = module.security.kms_secrets
+  locker_enabled                        = var.locker_enabled
+  locker_public_key                     = var.locker_public_key
+  tenant_private_key                    = var.tenant_private_key
+  db_password                           = var.db_password
+  rds_cluster_endpoint                  = module.rds.rds_cluster_endpoint
+  rds_cluster_reader_endpoint           = module.rds.rds_cluster_reader_endpoint
+  elasticache_cluster_endpoint_address  = module.elasticache.elasticache_cluster_endpoint_address
+  sdk_distribution_domain_name          = module.sdk.sdk_distribution_domain_name
+  external_alb_distribution_domain_name = module.loadbalancers.external_alb_distribution_domain_name
+  squid_nlb_dns_name                    = module.loadbalancers.squid_nlb_dns_name
 }
 
 module "proxy" {

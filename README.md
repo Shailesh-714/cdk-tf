@@ -97,3 +97,7 @@ notes:
 - log-stack.ts is pending (open-search-service)
 - add input variables as trigger for encryption lambda
 - add labels for istio injection in namespaces
+
+- must handle envoy config for internal load balancer dns name
+- there is an auto minor upgrade feature in aws rds cluster, see if we are handling it correctly
+- init job containers should have annotations to disable sidecar injection

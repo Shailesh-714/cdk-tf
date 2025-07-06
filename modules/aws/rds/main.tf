@@ -12,7 +12,7 @@ resource "aws_rds_cluster" "aurora" {
 
   cluster_identifier = "${var.stack_name}-db-cluster"
   engine             = "aurora-postgresql"
-  engine_version     = "14.11"
+  engine_version     = "14.15"
   engine_mode        = "provisioned"
 
   database_name   = var.db_name
@@ -35,12 +35,13 @@ resource "aws_rds_cluster" "aurora" {
 # Aurora Writer Instance
 resource "aws_rds_cluster_instance" "writer" {
 
-  identifier          = "${var.stack_name}-writer-instance"
-  cluster_identifier  = aws_rds_cluster.aurora.id
-  instance_class      = "db.t3.medium"
-  engine              = aws_rds_cluster.aurora.engine
-  engine_version      = aws_rds_cluster.aurora.engine_version
-  publicly_accessible = false
+  identifier                 = "${var.stack_name}-writer-instance"
+  cluster_identifier         = aws_rds_cluster.aurora.id
+  instance_class             = "db.t3.medium"
+  engine                     = aws_rds_cluster.aurora.engine
+  engine_version             = aws_rds_cluster.aurora.engine_version
+  publicly_accessible        = false
+  auto_minor_version_upgrade = false
 
   tags = merge(var.common_tags, {
     Name = "${var.stack_name}-writer-instance"
@@ -51,11 +52,12 @@ resource "aws_rds_cluster_instance" "writer" {
 # Aurora Reader Instance
 resource "aws_rds_cluster_instance" "reader" {
 
-  identifier         = "${var.stack_name}-reader-instance"
-  cluster_identifier = aws_rds_cluster.aurora.id
-  instance_class     = "db.t3.medium"
-  engine             = aws_rds_cluster.aurora.engine
-  engine_version     = aws_rds_cluster.aurora.engine_version
+  identifier                 = "${var.stack_name}-reader-instance"
+  cluster_identifier         = aws_rds_cluster.aurora.id
+  instance_class             = "db.t3.medium"
+  engine                     = aws_rds_cluster.aurora.engine
+  engine_version             = aws_rds_cluster.aurora.engine_version
+  auto_minor_version_upgrade = false
 
   tags = merge(var.common_tags, {
     Name = "${var.stack_name}-reader-instance"
