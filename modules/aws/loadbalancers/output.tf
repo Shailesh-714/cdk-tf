@@ -13,23 +13,7 @@ output "envoy_target_group_arn" {
   description = "ARN of the Envoy target group"
 }
 
-output "squid_nlb_dns_name" {
-  value       = aws_lb.squid_nlb.dns_name
-  description = "DNS name of the Squid NLB"
-}
-
-output "squid_target_group_arn" {
-  value       = aws_lb_target_group.squid_target_group.arn
-  description = "ARN of the Squid target group"
-}
-
-output "squid_internal_lb_sg_id" {
-  value       = aws_security_group.squid_internal_lb_sg.id
-  description = "ID of the Squid Internal Load Balancer Security Group"
-}
-
 output "cloudfront_ip_ranges" {
   value       = data.aws_ip_ranges.cloudfront.cidr_blocks
   description = "CloudFront IP ranges for security group rules"
-
 }

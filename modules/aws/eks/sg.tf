@@ -2,6 +2,16 @@
 #              EKS Cluster Security Group Rules
 # ==========================================================
 
+# resource "aws_security_group_rule" "eks_block_all_egress" {
+#   type              = "egress"
+#   from_port         = 0
+#   to_port           = 0
+#   protocol          = "-1"
+#   cidr_blocks       = []
+#   description       = "Block all egress traffic from EKS cluster nodes and pods"
+#   security_group_id = aws_eks_cluster.main.vpc_config[0].cluster_security_group_id
+# }
+
 resource "aws_security_group_rule" "eks_https" {
   type              = "egress"
   from_port         = 443

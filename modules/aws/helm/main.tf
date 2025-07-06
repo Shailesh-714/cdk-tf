@@ -360,8 +360,9 @@ resource "helm_release" "hyperswitch_services" {
             enabled            = true
             http_url           = "http://${var.squid_nlb_dns_name}:3128"
             https_url          = "http://${var.squid_nlb_dns_name}:3128"
-            bypass_proxy_hosts = "localhost,127.0.0.1,.svc,.svc.cluster.local,kubernetes.default.svc,169.254.169.254,.amazonaws.com,${var.rds_cluster_endpoint},${var.elasticache_cluster_endpoint_address}"
+            bypass_proxy_hosts = "\"localhost,127.0.0.1,.svc,.svc.cluster.local,kubernetes.default.svc,169.254.169.254,.amazonaws.com,${var.rds_cluster_endpoint},${var.elasticache_cluster_endpoint_address},${var.external_alb_distribution_domain_name},${var.sdk_distribution_domain_name}\""
           }
+
           podAnnotations = {
             "traffic.sidecar.istio.io/excludeOutboundIPRanges" = "10.23.6.12/32"
           }

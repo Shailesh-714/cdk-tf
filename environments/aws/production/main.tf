@@ -169,6 +169,29 @@ module "eks" {
   elasticache_security_group_id = module.elasticache.elasticache_security_group_id
 }
 
+# Proxy Configuration S3 Bucket (shared between Envoy and Squid)
+module "proxy_config" {
+  source = "../../../modules/aws/proxy-config"
+
+  stack_name  = var.stack_name
+  common_tags = local.common_tags
+  vpc_id      = module.vpc.vpc_id
+}
+
+# Squid Proxy Module (Comment out if not needed)
+module "squid_proxy" {
+  source = "../../../modules/aws/squid-proxy"
+
+  stack_name                    = var.stack_name
+  common_tags                   = local.common_tags
+  vpc_id                        = module.vpc.vpc_id
+  subnet_ids                    = module.vpc.subnet_ids
+  squid_image_ami               = var.squid_image_ami
+  eks_cluster_security_group_id = module.eks.eks_cluster_security_group_id
+  proxy_config_bucket_name      = module.proxy_config.proxy_config_bucket_name
+  proxy_config_bucket_arn       = module.proxy_config.proxy_config_bucket_arn
+}
+
 module "helm" {
   source = "../../../modules/aws/helm"
 
@@ -199,24 +222,23 @@ module "helm" {
   elasticache_cluster_endpoint_address  = module.elasticache.elasticache_cluster_endpoint_address
   sdk_distribution_domain_name          = module.sdk.sdk_distribution_domain_name
   external_alb_distribution_domain_name = module.loadbalancers.external_alb_distribution_domain_name
-  squid_nlb_dns_name                    = module.loadbalancers.squid_nlb_dns_name
+  squid_nlb_dns_name                    = module.squid_proxy.squid_nlb_dns_name
 }
 
-module "proxy" {
-  source = "../../../modules/aws/proxy"
+# Envoy Proxy Module
+module "envoy_proxy" {
+  source = "../../../modules/aws/envoy-proxy"
 
   stack_name                            = var.stack_name
   common_tags                           = local.common_tags
   vpc_id                                = module.vpc.vpc_id
   subnet_ids                            = module.vpc.subnet_ids
   envoy_image_ami                       = var.envoy_image_ami
-  squid_image_ami                       = var.squid_image_ami
   internal_alb_security_group_id        = module.helm.internal_alb_security_group_id
   external_alb_security_group_id        = module.loadbalancers.external_alb_security_group_id
-  eks_cluster_security_group_id         = module.eks.eks_cluster_security_group_id
   internal_alb_domain_name              = module.helm.internal_alb_dns_name
   external_alb_distribution_domain_name = module.loadbalancers.external_alb_distribution_domain_name
   envoy_target_group_arn                = module.loadbalancers.envoy_target_group_arn
-  squid_target_group_arn                = module.loadbalancers.squid_target_group_arn
-  squid_internal_lb_sg_id               = module.loadbalancers.squid_internal_lb_sg_id
+  proxy_config_bucket_name              = module.proxy_config.proxy_config_bucket_name
+  proxy_config_bucket_arn               = module.proxy_config.proxy_config_bucket_arn
 }

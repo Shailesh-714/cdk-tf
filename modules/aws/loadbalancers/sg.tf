@@ -33,23 +33,3 @@ data "aws_ip_ranges" "cloudfront" {
   services = ["CLOUDFRONT"]
   regions  = ["GLOBAL"] # CloudFront IPs are global
 }
-
-
-# Squid Internal Load Balancer Security Group
-resource "aws_security_group" "squid_internal_lb_sg" {
-  name                   = "${var.stack_name}-squid-internal-lb-sg"
-  description            = "Security group for Squid internal ALB"
-  vpc_id                 = var.vpc_id
-  revoke_rules_on_delete = true
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = []
-  }
-
-  tags = {
-    Name = "${var.stack_name}-squid-internal-lb-sg"
-  }
-}
