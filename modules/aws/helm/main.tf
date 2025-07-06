@@ -356,12 +356,17 @@ resource "helm_release" "hyperswitch_services" {
             "eks.amazonaws.com/role-arn" = var.hyperswitch_service_account_role_arn
           }
 
-          server_base_url = "https://sandbox.hyperswitch.io"
+          proxy = {
+            enabled            = true
+            http_url           = "http://${var.squid_nlb_dns_name}:3128"
+            https_url          = "http://${var.squid_nlb_dns_name}:3128"
+            bypass_proxy_hosts = "localhost,127.0.0.1,.svc,.svc.cluster.local,kubernetes.default.svc,169.254.169.254,.amazonaws.com,${var.rds_cluster_endpoint},${var.elasticache_cluster_endpoint_address}"
+          }
+          podAnnotations = {
+            "traffic.sidecar.istio.io/excludeOutboundIPRanges" = "10.23.6.12/32"
+          }
 
           secrets = {
-            podAnnotations = {
-              "traffic.sidecar.istio.io/excludeOutboundIPRanges" = "10.23.6.12/32"
-            }
             kms_admin_api_key                             = var.kms_secrets["kms_admin_api_key"]
             kms_jwt_secret                                = var.kms_secrets["kms_jwt_secret"]
             kms_jwekey_locker_identifier1                 = var.kms_secrets["kms_jwekey_locker_identifier1"]
