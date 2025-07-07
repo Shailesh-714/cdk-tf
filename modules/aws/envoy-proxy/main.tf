@@ -26,6 +26,9 @@ resource "aws_s3_object" "envoy_config" {
   bucket  = var.proxy_config_bucket_name
   key     = "envoy/envoy.yaml"
   content = local.envoy_config_content
+  
+  # This ensures the object is recreated when the content changes
+  etag = md5(local.envoy_config_content)
 }
 
 # IAM Role for Envoy Instances
@@ -150,11 +153,14 @@ resource "aws_launch_template" "envoy_launch_template" {
       Name = "${var.stack_name}-envoy-proxy-instance"
     })
   }
+  
+  # Force new version when config changes
+  description = "Config hash: ${substr(md5(local.envoy_config_content), 0, 8)}"
 }
 
 # Auto Scaling Group
 resource "aws_autoscaling_group" "envoy_asg" {
-  name                = "envoy-asg"
+  name                = "${var.stack_name}-envoy-asg"
   vpc_zone_identifier = var.subnet_ids["incoming_web_envoy_zone"]
   min_size            = 1
   max_size            = 2
@@ -167,12 +173,29 @@ resource "aws_autoscaling_group" "envoy_asg" {
 
   target_group_arns = [var.envoy_target_group_arn]
   health_check_type = "ELB"
+  
+  # Instance refresh configuration to replace instances when config changes
+  instance_refresh {
+    strategy = "Rolling"
+    preferences {
+      min_healthy_percentage = 50
+      instance_warmup        = 60
+    }
+    triggers = ["tag"]
+  }
 
   depends_on = [aws_s3_object.envoy_config]
 
   tag {
     key                 = "Name"
-    value               = "envoy-asg"
+    value               = "${var.stack_name}-envoy-asg"
+    propagate_at_launch = true
+  }
+  
+  # Tag that changes when configuration changes to trigger instance refresh
+  tag {
+    key                 = "ConfigVersion"
+    value               = substr(md5(local.envoy_config_content), 0, 8)
     propagate_at_launch = true
   }
 

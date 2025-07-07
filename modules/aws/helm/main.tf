@@ -262,8 +262,6 @@ resource "helm_release" "traffic_control" {
   ]
 
   depends_on = [
-    helm_release.istio_base,
-    helm_release.istiod,
     helm_release.istio_gateway,
     aws_security_group.internal_alb_sg
   ]

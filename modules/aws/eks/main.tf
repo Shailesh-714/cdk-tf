@@ -131,19 +131,6 @@ data "aws_eks_cluster_auth" "main" {
   name = aws_eks_cluster.main.name
 }
 
-# Null resource to update kubeconfig
-resource "null_resource" "update_kubeconfig" {
-  provisioner "local-exec" {
-    command = "aws eks update-kubeconfig --name ${aws_eks_cluster.main.name} --region ${data.aws_region.current.name}"
-  }
-
-  triggers = {
-    cluster_id = aws_eks_cluster.main.id
-  }
-
-  depends_on = [aws_eks_cluster.main]
-}
-
 # ==========================================================
 #                       EKS Node Groups
 # ==========================================================

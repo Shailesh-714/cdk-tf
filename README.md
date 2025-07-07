@@ -101,3 +101,5 @@ notes:
 - must handle envoy config for internal load balancer dns name
 - there is an auto minor upgrade feature in aws rds cluster, see if we are handling it correctly
 - init job containers should have annotations to disable sidecar injection
+
+- revoke all outbound to eks
