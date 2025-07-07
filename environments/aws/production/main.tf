@@ -161,8 +161,6 @@ module "eks" {
   control_plane_subnet_ids      = module.vpc.eks_control_plane_zone_subnet_ids
   kubernetes_version            = var.kubernetes_version
   vpn_ips                       = var.vpn_ips
-  eks_cluster_role_arn          = module.security.eks_cluster_role_arn
-  eks_node_group_role_arn       = module.security.eks_node_group_role_arn
   kms_key_arn                   = module.security.hyperswitch_kms_key_arn
   log_retention_days            = var.log_retention_days
   rds_security_group_id         = module.rds.rds_security_group_id
@@ -242,3 +240,39 @@ module "envoy_proxy" {
   proxy_config_bucket_name              = module.proxy_config.proxy_config_bucket_name
   proxy_config_bucket_arn               = module.proxy_config.proxy_config_bucket_arn
 }
+
+# # External Jump Host
+# module "external_jump" {
+#   source = "./modules/jump-hosts/external"
+
+#   stack_name                 = var.stack_name
+#   vpc_id                     = var.vpc_id
+#   subnet_id                  = var.management_subnet_id
+#   vpc_cidr_block             = var.vpc_cidr_block
+#   instance_type              = "t3.medium"
+#   kms_key_arn                = var.kms_key_arn
+#   enable_ssm_session_manager = true
+#   vpce_security_group_id     = var.vpce_security_group_id
+
+#   tags = var.common_tags
+# }
+
+# # Internal Jump Host
+# module "internal_jump" {
+#   source = "./modules/jump-hosts/internal"
+
+#   stack_name          = var.stack_name
+#   vpc_id              = var.vpc_id
+#   subnet_id           = var.utils_subnet_id
+#   vpc_cidr_block      = var.vpc_cidr_block
+#   instance_type       = "t3.medium"
+#   external_jump_sg_id = module.external_jump.security_group_id
+
+#   # Optional - connect to databases if they exist
+#   rds_sg_id         = var.rds_security_group_id
+#   elasticache_sg_id = var.elasticache_security_group_id
+#   locker_ec2_sg_id  = var.locker_ec2_security_group_id
+#   locker_db_sg_id   = var.locker_db_security_group_id
+
+#   tags = var.common_tags
+# }

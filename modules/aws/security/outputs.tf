@@ -28,15 +28,6 @@ output "hyperswitch_ssm_kms_key_alias" {
   value       = aws_kms_alias.hyperswitch_ssm_kms_key_alias.name
 }
 
-output "eks_cluster_role_arn" {
-  description = "ARN of the EKS Cluster IAM Role"
-  value       = aws_iam_role.eks_cluster.arn
-}
-output "eks_node_group_role_arn" {
-  description = "ARN of the EKS Node Group IAM Role"
-  value       = aws_iam_role.eks_node_group.arn
-}
-
 # Output for KMS secrets
 output "kms_secrets" {
   value = merge(

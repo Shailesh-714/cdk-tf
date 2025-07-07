@@ -70,10 +70,15 @@ resource "helm_release" "istio_base" {
   version          = "1.25.0"
   create_namespace = true
   wait             = true
-
+  # Force replace CRDs on upgrade to avoid conflicts
+  force_update = true
   values = [
     yamlencode({
       defaultRevision = "default"
+      # Ensure CRDs are managed by this release
+      base = {
+        enableCRDTemplates = true
+      }
     })
   ]
 }

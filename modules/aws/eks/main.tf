@@ -8,7 +8,7 @@ data "aws_region" "current" {}
 # EKS Cluster
 resource "aws_eks_cluster" "main" {
   name     = "${var.stack_name}-cluster"
-  role_arn = var.eks_cluster_role_arn
+  role_arn = aws_iam_role.eks_cluster.arn
   version  = var.kubernetes_version
 
   vpc_config {
@@ -138,7 +138,7 @@ data "aws_eks_cluster_auth" "main" {
 resource "aws_eks_node_group" "hs_nodegroup" {
   cluster_name    = aws_eks_cluster.main.name
   node_group_name = "hs-nodegroup"
-  node_role_arn   = var.eks_node_group_role_arn
+  node_role_arn   = aws_iam_role.eks_node_group.arn
 
   subnet_ids = var.subnet_ids["eks_worker_nodes"]
 
@@ -162,7 +162,7 @@ resource "aws_eks_node_group" "hs_nodegroup" {
 resource "aws_eks_node_group" "hs_autopilot_nodegroup" {
   cluster_name    = aws_eks_cluster.main.name
   node_group_name = "autopilot-od"
-  node_role_arn   = var.eks_node_group_role_arn
+  node_role_arn   = aws_iam_role.eks_node_group.arn
 
   subnet_ids = var.subnet_ids["eks_worker_nodes"]
 
@@ -187,7 +187,7 @@ resource "aws_eks_node_group" "hs_autopilot_nodegroup" {
 resource "aws_eks_node_group" "hs_ckh_zookeeper_nodegroup" {
   cluster_name    = aws_eks_cluster.main.name
   node_group_name = "ckh-zookeeper-compute"
-  node_role_arn   = var.eks_node_group_role_arn
+  node_role_arn   = aws_iam_role.eks_node_group.arn
 
   subnet_ids = var.subnet_ids["eks_worker_nodes"]
 
@@ -209,7 +209,7 @@ resource "aws_eks_node_group" "hs_ckh_zookeeper_nodegroup" {
 resource "aws_eks_node_group" "hs_ckh_compute_nodegroup" {
   cluster_name    = aws_eks_cluster.main.name
   node_group_name = "clickhouse-compute-OD"
-  node_role_arn   = var.eks_node_group_role_arn
+  node_role_arn   = aws_iam_role.eks_node_group.arn
 
   subnet_ids = var.subnet_ids["eks_worker_nodes"]
 
@@ -231,7 +231,7 @@ resource "aws_eks_node_group" "hs_ckh_compute_nodegroup" {
 resource "aws_eks_node_group" "hs_control_center_nodegroup" {
   cluster_name    = aws_eks_cluster.main.name
   node_group_name = "control-center"
-  node_role_arn   = var.eks_node_group_role_arn
+  node_role_arn   = aws_iam_role.eks_node_group.arn
 
   subnet_ids = var.subnet_ids["eks_worker_nodes"]
 
@@ -255,7 +255,7 @@ resource "aws_eks_node_group" "hs_control_center_nodegroup" {
 resource "aws_eks_node_group" "hs_kafka_compute_nodegroup" {
   cluster_name    = aws_eks_cluster.main.name
   node_group_name = "kafka-compute-OD"
-  node_role_arn   = var.eks_node_group_role_arn
+  node_role_arn   = aws_iam_role.eks_node_group.arn
 
   subnet_ids = var.subnet_ids["eks_worker_nodes"]
 
@@ -277,7 +277,7 @@ resource "aws_eks_node_group" "hs_kafka_compute_nodegroup" {
 resource "aws_eks_node_group" "hs_memory_optimized_nodegroup" {
   cluster_name    = aws_eks_cluster.main.name
   node_group_name = "memory-optimized-od"
-  node_role_arn   = var.eks_node_group_role_arn
+  node_role_arn   = aws_iam_role.eks_node_group.arn
 
   subnet_ids = var.subnet_ids["eks_worker_nodes"]
 
@@ -301,7 +301,7 @@ resource "aws_eks_node_group" "hs_memory_optimized_nodegroup" {
 resource "aws_eks_node_group" "hs_monitoring_nodegroup" {
   cluster_name    = aws_eks_cluster.main.name
   node_group_name = "monitoring-od"
-  node_role_arn   = var.eks_node_group_role_arn
+  node_role_arn   = aws_iam_role.eks_node_group.arn
 
   subnet_ids = var.subnet_ids["eks_worker_nodes"]
 
@@ -325,7 +325,7 @@ resource "aws_eks_node_group" "hs_monitoring_nodegroup" {
 resource "aws_eks_node_group" "hs_pomerium_nodegroup" {
   cluster_name    = aws_eks_cluster.main.name
   node_group_name = "pomerium"
-  node_role_arn   = var.eks_node_group_role_arn
+  node_role_arn   = aws_iam_role.eks_node_group.arn
 
   subnet_ids = var.subnet_ids["eks_worker_nodes"]
 
@@ -351,7 +351,7 @@ resource "aws_eks_node_group" "hs_pomerium_nodegroup" {
 resource "aws_eks_node_group" "hs_system_nodegroup" {
   cluster_name    = aws_eks_cluster.main.name
   node_group_name = "system-nodes-od"
-  node_role_arn   = var.eks_node_group_role_arn
+  node_role_arn   = aws_iam_role.eks_node_group.arn
 
   subnet_ids = var.subnet_ids["eks_worker_nodes"]
 
@@ -375,7 +375,7 @@ resource "aws_eks_node_group" "hs_system_nodegroup" {
 resource "aws_eks_node_group" "hs_utils_nodegroup" {
   cluster_name    = aws_eks_cluster.main.name
   node_group_name = "utils-compute-od"
-  node_role_arn   = var.eks_node_group_role_arn
+  node_role_arn   = aws_iam_role.eks_node_group.arn
 
   subnet_ids = var.subnet_ids["utils_zone"]
 
@@ -399,7 +399,7 @@ resource "aws_eks_node_group" "hs_utils_nodegroup" {
 resource "aws_eks_node_group" "hs_zk_compute_nodegroup" {
   cluster_name    = aws_eks_cluster.main.name
   node_group_name = "zookeeper-compute"
-  node_role_arn   = var.eks_node_group_role_arn
+  node_role_arn   = aws_iam_role.eks_node_group.arn
 
   subnet_ids = var.subnet_ids["eks_worker_nodes"]
 

@@ -6,7 +6,7 @@ resource "aws_cloudfront_origin_access_identity" "sdk_oai" {
   comment = "OAI for Hyperswitch SDK bucket"
 }
 
-resource "aws_s3_bucket_policy" "sdk_bucket_policy_cloudfront" {
+resource "aws_s3_bucket_policy" "sdk_bucket_policy" {
   bucket = aws_s3_bucket.hyperswitch_sdk.id
 
   policy = jsonencode({
@@ -20,6 +20,22 @@ resource "aws_s3_bucket_policy" "sdk_bucket_policy_cloudfront" {
         }
         Action   = "s3:GetObject"
         Resource = "${aws_s3_bucket.hyperswitch_sdk.arn}/*"
+      },
+      {
+        Sid    = "AllowCodeBuildAccess"
+        Effect = "Allow"
+        Principal = {
+          AWS = aws_iam_role.sdk_build_role.arn
+        }
+        Action = [
+          "s3:GetObject",
+          "s3:PutObject",
+          "s3:ListBucket"
+        ]
+        Resource = [
+          aws_s3_bucket.hyperswitch_sdk.arn,
+          "${aws_s3_bucket.hyperswitch_sdk.arn}/*"
+        ]
       }
     ]
   })
@@ -128,28 +144,3 @@ resource "aws_iam_role_policy" "sdk_assets_upload_lambda_policy" {
   })
 }
 
-# S3 Bucket Policy for CodeBuild
-resource "aws_s3_bucket_policy" "sdk_bucket_policy_codebuild" {
-  bucket = aws_s3_bucket.hyperswitch_sdk.id
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow"
-        Principal = {
-          AWS = aws_iam_role.sdk_build_role.arn
-        }
-        Action = [
-          "s3:GetObject",
-          "s3:PutObject",
-          "s3:ListBucket"
-        ]
-        Resource = [
-          aws_s3_bucket.hyperswitch_sdk.arn,
-          "${aws_s3_bucket.hyperswitch_sdk.arn}/*"
-        ]
-      }
-    ]
-  })
-}

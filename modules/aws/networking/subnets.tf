@@ -99,7 +99,7 @@ resource "aws_subnet" "database_isolated" {
 resource "aws_subnet" "eks_worker_nodes" {
   count             = length(var.availability_zones)
   vpc_id            = aws_vpc.main.id
-  cidr_block        = cidrsubnet(var.vpc_cidr, 6, count.index + 16) # /22 subnet starting at higher offset
+  cidr_block        = cidrsubnet(var.vpc_cidr, 6, count.index + 48) # /22 subnet starting at offset 48 (non-conflicting)
   availability_zone = var.availability_zones[count.index]
 
   tags = merge(
