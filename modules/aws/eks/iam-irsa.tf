@@ -346,6 +346,8 @@ resource "aws_iam_role_policy" "grafana_policy" {
 }
 
 # IAM Role for EBS CSI Driver
+# The EKS addon creates a service account named 'ebs-csi-controller-sa' in kube-system namespace
+# This is the standard name used by the AWS EBS CSI Driver addon
 resource "aws_iam_role" "ebs_csi_driver" {
   name = "${var.stack_name}-ebs-csi-driver-role"
 
@@ -360,7 +362,7 @@ resource "aws_iam_role" "ebs_csi_driver" {
         Action = "sts:AssumeRoleWithWebIdentity"
         Condition = {
           StringEquals = {
-            "${replace(aws_iam_openid_connect_provider.eks.url, "https://", "")}:sub" = "system:serviceaccount:kube-system:ebs-csi-controller-sa-${data.aws_region.current.name}"
+            "${replace(aws_iam_openid_connect_provider.eks.url, "https://", "")}:sub" = "system:serviceaccount:kube-system:ebs-csi-controller-sa"
             "${replace(aws_iam_openid_connect_provider.eks.url, "https://", "")}:aud" = "sts.amazonaws.com"
           }
         }
@@ -425,27 +427,5 @@ module "aws_load_balancer_controller_irsa" {
   }
 }
 
-# Service account for AWS Load Balancer Controller
-resource "kubernetes_service_account" "alb_controller" {
-  metadata {
-    name      = "aws-load-balancer-controller-sa"
-    namespace = "kube-system"
-
-    annotations = {
-      "eks.amazonaws.com/role-arn" = module.aws_load_balancer_controller_irsa.iam_role_arn
-    }
-  }
-}
-
-
-resource "kubernetes_service_account" "ebs_csi_controller_sa" {
-  metadata {
-    name      = "ebs-csi-controller-sa-${data.aws_region.current.name}"
-    namespace = "kube-system"
-    annotations = {
-      "eks.amazonaws.com/role-arn" = aws_iam_role.ebs_csi_driver.arn
-    }
-  }
-  depends_on = [aws_eks_cluster.main]
-}
+# Service accounts are now created in the helm module
 

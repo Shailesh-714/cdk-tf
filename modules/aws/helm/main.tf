@@ -8,8 +8,21 @@ data "aws_caller_identity" "current" {}
 #                  Helm Provider Config
 # ==========================================================
 
+# Update kubeconfig to ensure kubectl and other tools work correctly
+resource "null_resource" "update_kubeconfig" {
+  provisioner "local-exec" {
+    command = "aws eks update-kubeconfig --region ${data.aws_region.current.name} --name ${var.eks_cluster_name}"
+  }
+
+  triggers = {
+    cluster_name = var.eks_cluster_name
+  }
+}
+
 data "aws_eks_cluster_auth" "main" {
   name = var.eks_cluster_name
+  
+  depends_on = [null_resource.update_kubeconfig]
 }
 
 provider "kubernetes" {
@@ -25,6 +38,24 @@ provider "helm" {
     token                  = data.aws_eks_cluster_auth.main.token
   }
 }
+
+# ==========================================================
+#                    Kubernetes Service Accounts
+# ==========================================================
+
+# Service account for AWS Load Balancer Controller
+resource "kubernetes_service_account" "alb_controller" {
+  metadata {
+    name      = "aws-load-balancer-controller-sa"
+    namespace = "kube-system"
+
+    annotations = {
+      "eks.amazonaws.com/role-arn" = var.alb_controller_role_arn
+    }
+  }
+}
+
+# Note: EBS CSI Driver service account is created by the EKS addon in the EKS module
 
 # ==========================================================
 #                       Helm Releases
@@ -54,11 +85,14 @@ resource "helm_release" "alb_controller" {
 
       serviceAccount = {
         create = false
-        name   = var.alb_controller_service_account_name
+        name   = kubernetes_service_account.alb_controller.metadata[0].name
       }
     })
   ]
 
+  depends_on = [
+    kubernetes_service_account.alb_controller
+  ]
 }
 
 # Helm release for Istio base components

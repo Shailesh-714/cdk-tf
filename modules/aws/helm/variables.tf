@@ -50,13 +50,8 @@ variable "eks_cluster_security_group_id" {
   type        = string
 }
 
-variable "alb_controller_service_account_name" {
-  description = "Name of the service account for the AWS Load Balancer Controller"
-  type        = string
-}
-
-variable "ebs_csi_driver_service_account_name" {
-  description = "Name of the service account for the EBS CSI Driver"
+variable "alb_controller_role_arn" {
+  description = "IAM role ARN for the AWS Load Balancer Controller"
   type        = string
 }
 

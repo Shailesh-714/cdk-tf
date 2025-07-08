@@ -98,6 +98,8 @@ resource "aws_eks_addon" "coredns" {
 }
 
 # EBS CSI Driver Addon
+# This addon creates its own service account named 'ebs-csi-controller-sa' in kube-system namespace
+# The IAM role trust policy in iam-irsa.tf is configured to trust this service account
 resource "aws_eks_addon" "ebs_csi_driver" {
   cluster_name                = aws_eks_cluster.main.name
   addon_name                  = "aws-ebs-csi-driver"
@@ -113,22 +115,7 @@ resource "aws_eks_addon" "ebs_csi_driver" {
 
   depends_on = [
     aws_eks_node_group.hs_nodegroup,
-    kubernetes_service_account.ebs_csi_controller_sa
   ]
-}
-
-# ==========================================================
-#                Kubernetes Provider Config
-# ==========================================================
-
-provider "kubernetes" {
-  host                   = aws_eks_cluster.main.endpoint
-  cluster_ca_certificate = base64decode(aws_eks_cluster.main.certificate_authority[0].data)
-  token                  = data.aws_eks_cluster_auth.main.token
-}
-
-data "aws_eks_cluster_auth" "main" {
-  name = aws_eks_cluster.main.name
 }
 
 # ==========================================================

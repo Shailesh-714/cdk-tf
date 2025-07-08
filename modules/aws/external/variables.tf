@@ -35,7 +35,7 @@ variable "kms_key_arn" {
   type        = string
 }
 
-variable "tags" {
+variable "common_tags" {
   description = "Tags to apply to all resources"
   type        = map(string)
   default     = {}

@@ -30,7 +30,7 @@ variable "key_name" {
   default     = null
 }
 
-variable "tags" {
+variable "common_tags" {
   description = "Tags to apply to all resources"
   type        = map(string)
   default     = {}
