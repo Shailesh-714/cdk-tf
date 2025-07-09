@@ -1,6 +1,6 @@
 resource "aws_cloudfront_distribution" "external_alb_distribution" {
   enabled = true
-
+  comment = "Hyperswitch External ALB Distribution"
   origin {
     domain_name = aws_lb.external_alb.dns_name
     origin_id   = "${var.stack_name}-external-alb-origin"
