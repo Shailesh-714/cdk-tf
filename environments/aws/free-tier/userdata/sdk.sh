@@ -32,8 +32,8 @@ sudo find /sdk_assets -type f -name "*.js" -exec sed -i "s|{{sdk_cloudfront_url}
 
 # Create SDK directory structure
 sudo mkdir -p /sdk/${sdk_version}/${sdk_sub_version}
-sudo mv /data/* /sdk/${sdk_version}/${sdk_sub_version}
-sudo rm -rf /data data.zip
+sudo mv /sdk_assets/* /sdk/${sdk_version}/${sdk_sub_version}
+sudo rm -rf /sdk_assets sdk_assets.zip
 
 # Start SDK server
 cd /sdk

@@ -901,16 +901,18 @@ resource "aws_instance" "backend" {
   iam_instance_profile   = aws_iam_instance_profile.ec2.name
 
   user_data = base64encode(templatefile("${path.module}/userdata/app-dashboard.sh", {
-    redis_host         = aws_elasticache_cluster.redis.cache_nodes[0].address
-    db_host            = aws_db_instance.main.address
-    db_username        = var.db_username
-    db_password        = var.db_password
-    db_name            = var.db_name
-    admin_api_key      = var.admin_api_key
-    app_cloudfront_url = aws_cloudfront_distribution.app.domain_name
-    sdk_cloudfront_url = aws_cloudfront_distribution.sdk.domain_name
-    sdk_version        = var.sdk_version
-    sdk_sub_version    = var.sdk_sub_version
+    redis_host             = aws_elasticache_cluster.redis.cache_nodes[0].address
+    db_host                = aws_db_instance.main.address
+    db_username            = var.db_username
+    db_password            = var.db_password
+    db_name                = var.db_name
+    admin_api_key          = var.admin_api_key
+    app_cloudfront_url     = aws_cloudfront_distribution.app.domain_name
+    sdk_cloudfront_url     = aws_cloudfront_distribution.sdk.domain_name
+    router_version         = var.router_version
+    control_center_version = var.control_center_version
+    sdk_version            = var.sdk_version
+    sdk_sub_version        = var.sdk_sub_version
   }))
 
   tags = {

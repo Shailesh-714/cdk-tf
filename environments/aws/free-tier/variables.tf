@@ -43,6 +43,18 @@ variable "admin_api_key" {
   sensitive   = true
 }
 
+variable "router_version" {
+  description = "Hyperswitch Router version to deploy"
+  type        = string
+  default     = "v1.115.0"
+}
+
+variable "control_center_version" {
+  description = "Hyperswitch Control Center version to deploy"
+  type        = string
+  default     = "v1.37.2"
+}
+
 variable "sdk_version" {
   description = "Hyperswitch SDK version to deploy"
   type        = string

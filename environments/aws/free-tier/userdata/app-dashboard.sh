@@ -47,8 +47,8 @@ cd /opt/hyperswitch
 
 # Download official configuration files
 echo "Downloading official Hyperswitch configuration files..."
-curl -o docker_compose.toml https://raw.githubusercontent.com/juspay/hyperswitch/main/config/docker_compose.toml
-curl -o dashboard.toml https://raw.githubusercontent.com/juspay/hyperswitch/main/config/dashboard.toml
+curl -o docker_compose.toml https://raw.githubusercontent.com/juspay/hyperswitch/refs/tags/${router_version}/config/docker_compose.toml
+curl -o dashboard.toml https://raw.githubusercontent.com/juspay/hyperswitch/refs/tags/${router_version}/config/dashboard.toml
 
 # Check and run migrations if needed
 if ! psql -h ${db_host} -U ${db_username} -d ${db_name} -tAc "SELECT 1 FROM information_schema.tables WHERE table_name='merchant_account'" 2>/dev/null | grep -q 1; then
@@ -58,17 +58,18 @@ if ! psql -h ${db_host} -U ${db_username} -d ${db_name} -tAc "SELECT 1 FROM info
     mkdir -p /tmp/hyperswitch-migrations
     cd /tmp/hyperswitch-migrations
 
-    # Download only the necessary files for migrations
-    echo "Downloading migration files..."
+    # Download only the necessary files for migrations from specific version
+    echo "Downloading migration files from version ${router_version}..."
     git init
     git remote add origin https://github.com/juspay/hyperswitch.git
     git config core.sparseCheckout true
     echo "migrations/*" >.git/info/sparse-checkout
     echo "diesel.toml" >>.git/info/sparse-checkout
     echo "Justfile" >>.git/info/sparse-checkout
-    git pull origin main --depth=1
+    git fetch --depth=1 origin refs/tags/${router_version}:refs/tags/${router_version}
+    git checkout ${router_version}
 
-    # Run migrations using Docker container
+    # Run migrations using Docker container with cargo-binstall for faster setup
     echo "Executing database migrations..."
     docker run --rm \
         -v /tmp/hyperswitch-migrations:/app \
@@ -77,9 +78,9 @@ if ! psql -h ${db_host} -U ${db_username} -d ${db_name} -tAc "SELECT 1 FROM info
         --network host \
         rust:latest \
         bash -c "
-      apt-get update && apt-get install -y libpq-dev &&
-      cargo install diesel_cli --no-default-features --features postgres &&
-      diesel migration run
+      curl -fsSL https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash &&
+      cargo binstall diesel_cli just --no-confirm &&
+      just migrate
     "
 
     # Cleanup
@@ -130,7 +131,7 @@ echo "Starting Hyperswitch backend services..."
 
 # Router with memory limit
 echo "Starting Hyperswitch Router..."
-docker pull juspaydotin/hyperswitch-router:standalone
+docker pull juspaydotin/hyperswitch-router:${router_version}
 docker run -d --name hyperswitch-router \
     --memory="512m" \
     --memory-swap="1g" \
@@ -138,7 +139,7 @@ docker run -d --name hyperswitch-router \
     -p 8080:8080 \
     -v /opt/hyperswitch/docker_compose.toml:/local/config/docker_compose.toml \
     --restart unless-stopped \
-    juspaydotin/hyperswitch-router:standalone ./router -f /local/config/docker_compose.toml
+    juspaydotin/hyperswitch-router:${router_version} ./router -f /local/config/docker_compose.toml
 
 # Wait for router
 echo "Waiting for router to be healthy..."
@@ -157,7 +158,7 @@ sed -i "s|sdk_url=\"http://localhost:9050/HyperLoader.js\"|sdk_url=\"https://${s
 
 # Control Center with memory limit
 echo "Starting Control Center..."
-docker pull juspaydotin/hyperswitch-control-center:latest
+docker pull juspaydotin/hyperswitch-control-center:${control_center_version}
 docker run -d --name hyperswitch-control-center \
     --memory="384m" \
     --memory-swap="768m" \
@@ -165,7 +166,7 @@ docker run -d --name hyperswitch-control-center \
     -v /opt/hyperswitch/dashboard.toml:/tmp/dashboard-config.toml \
     -e "configPath=/tmp/dashboard-config.toml" \
     --restart unless-stopped \
-    juspaydotin/hyperswitch-control-center:latest
+    juspaydotin/hyperswitch-control-center:${control_center_version}
 
 echo "Backend setup completed successfully!"
 echo "Services running:"
