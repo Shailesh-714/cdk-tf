@@ -49,9 +49,6 @@ env/
 venv/
 .env
 
-# Lambda function packages
-*.zip
-
 # Logs
 *.log
 
