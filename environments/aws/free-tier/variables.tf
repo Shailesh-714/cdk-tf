@@ -42,3 +42,15 @@ variable "admin_api_key" {
   type        = string
   sensitive   = true
 }
+
+variable "sdk_version" {
+  description = "Hyperswitch SDK version to deploy"
+  type        = string
+  default     = "0.27.2"
+}
+
+variable "sdk_sub_version" {
+  description = "Hyperswitch SDK sub-version to deploy"
+  type        = string
+  default     = "v1"
+}

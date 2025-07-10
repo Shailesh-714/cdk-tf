@@ -50,19 +50,6 @@ data "aws_vpc" "main" {
 # ==========================================================
 locals {
   azs = slice(data.aws_availability_zones.available.names, 0, var.az_count)
-
-  user_data = templatefile("${path.module}/userdata.sh", {
-    redis_host         = aws_elasticache_cluster.redis.cache_nodes[0].address
-    db_host            = aws_db_instance.main.address
-    db_username        = var.db_username
-    db_password        = var.db_password
-    db_name            = var.db_name
-    admin_api_key      = var.admin_api_key
-    app_cloudfront_url = aws_cloudfront_distribution.app.domain_name
-    sdk_cloudfront_url = aws_cloudfront_distribution.sdk.domain_name
-    version            = "0.27.2"
-    sub_version        = "v0"
-  })
 }
 
 # ==========================================================
@@ -212,8 +199,8 @@ resource "aws_vpc_security_group_ingress_rule" "alb_control_center" {
 resource "aws_vpc_security_group_ingress_rule" "alb_sdk" {
   security_group_id = aws_security_group.app_alb.id
   description       = "Allow SDK traffic"
-  from_port         = 9090
-  to_port           = 9090
+  from_port         = 9050
+  to_port           = 9050
   ip_protocol       = "tcp"
   cidr_ipv4         = "0.0.0.0/0"
 }
@@ -538,30 +525,6 @@ resource "aws_elasticache_cluster" "redis" {
 }
 
 # ==========================================================
-#                      EC2 Instance
-# ==========================================================
-# Single EC2 Instance
-resource "aws_instance" "hyperswitch" {
-  ami                    = data.aws_ami.amazon_linux.id
-  instance_type          = "t2.micro"
-  subnet_id              = aws_subnet.public[0].id
-  vpc_security_group_ids = [aws_security_group.ec2.id]
-  iam_instance_profile   = aws_iam_instance_profile.ec2.name
-
-  user_data = base64encode(local.user_data)
-
-  tags = {
-    Name = "${var.stack_name}-hyperswitch-instance"
-  }
-
-  # Ensure RDS and ElastiCache are ready before starting EC2
-  depends_on = [
-    aws_db_instance.main,
-    aws_elasticache_cluster.redis
-  ]
-}
-
-# ==========================================================
 #                    Load Balancer
 # ==========================================================
 # Application Load Balancer
@@ -577,9 +540,9 @@ resource "aws_lb" "app" {
   }
 }
 
-# Target Groups
-resource "aws_lb_target_group" "app_80" {
-  name     = "${var.stack_name}-app-80"
+# Target Groups with consistent naming
+resource "aws_lb_target_group" "router" {
+  name     = "${var.stack_name}-router-tg"
   port     = 8080
   protocol = "HTTP"
   vpc_id   = data.aws_vpc.main.id
@@ -593,10 +556,14 @@ resource "aws_lb_target_group" "app_80" {
     path                = "/health"
     matcher             = "200-499"
   }
+
+  tags = {
+    Name = "${var.stack_name}-router-tg"
+  }
 }
 
-resource "aws_lb_target_group" "app_9000" {
-  name     = "${var.stack_name}-app-9000"
+resource "aws_lb_target_group" "control_center" {
+  name     = "${var.stack_name}-control-center-tg"
   port     = 9000
   protocol = "HTTP"
   vpc_id   = data.aws_vpc.main.id
@@ -605,11 +572,16 @@ resource "aws_lb_target_group" "app_9000" {
     enabled  = true
     path     = "/"
     protocol = "HTTP"
+    matcher  = "200"
+  }
+
+  tags = {
+    Name = "${var.stack_name}-control-center-tg"
   }
 }
 
-resource "aws_lb_target_group" "app_9090" {
-  name     = "${var.stack_name}-app-9090"
+resource "aws_lb_target_group" "sdk" {
+  name     = "${var.stack_name}-sdk-tg"
   port     = 9050
   protocol = "HTTP"
   vpc_id   = data.aws_vpc.main.id
@@ -620,10 +592,14 @@ resource "aws_lb_target_group" "app_9090" {
     protocol = "HTTP"
     matcher  = "200"
   }
+
+  tags = {
+    Name = "${var.stack_name}-sdk-tg"
+  }
 }
 
-resource "aws_lb_target_group" "app_5252" {
-  name     = "${var.stack_name}-app-5252"
+resource "aws_lb_target_group" "demo" {
+  name     = "${var.stack_name}-demo-tg"
   port     = 5252
   protocol = "HTTP"
   vpc_id   = data.aws_vpc.main.id
@@ -632,76 +608,81 @@ resource "aws_lb_target_group" "app_5252" {
     enabled  = true
     path     = "/"
     protocol = "HTTP"
+    matcher  = "200"
+  }
+
+  tags = {
+    Name = "${var.stack_name}-demo-tg"
   }
 }
 
 # Target Group Attachments
-resource "aws_lb_target_group_attachment" "app_80" {
-  target_group_arn = aws_lb_target_group.app_80.arn
-  target_id        = aws_instance.hyperswitch.id
+resource "aws_lb_target_group_attachment" "router" {
+  target_group_arn = aws_lb_target_group.router.arn
+  target_id        = aws_instance.backend.id
   port             = 8080
 }
 
-resource "aws_lb_target_group_attachment" "app_9000" {
-  target_group_arn = aws_lb_target_group.app_9000.arn
-  target_id        = aws_instance.hyperswitch.id
+resource "aws_lb_target_group_attachment" "control_center" {
+  target_group_arn = aws_lb_target_group.control_center.arn
+  target_id        = aws_instance.backend.id
   port             = 9000
 }
 
-resource "aws_lb_target_group_attachment" "app_9090" {
-  target_group_arn = aws_lb_target_group.app_9090.arn
-  target_id        = aws_instance.hyperswitch.id
+resource "aws_lb_target_group_attachment" "sdk" {
+  target_group_arn = aws_lb_target_group.sdk.arn
+  target_id        = aws_instance.frontend.id
   port             = 9050
 }
 
-resource "aws_lb_target_group_attachment" "app_5252" {
-  target_group_arn = aws_lb_target_group.app_5252.arn
-  target_id        = aws_instance.hyperswitch.id
+resource "aws_lb_target_group_attachment" "demo" {
+  target_group_arn = aws_lb_target_group.demo.arn
+  target_id        = aws_instance.frontend.id
   port             = 5252
 }
 
 # ALB Listeners
-resource "aws_lb_listener" "app_80" {
+resource "aws_lb_listener" "router" {
   load_balancer_arn = aws_lb.app.arn
   port              = "80"
   protocol          = "HTTP"
 
   default_action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.app_80.arn
+    target_group_arn = aws_lb_target_group.router.arn
   }
 }
 
-resource "aws_lb_listener" "app_9000" {
+resource "aws_lb_listener" "control_center" {
   load_balancer_arn = aws_lb.app.arn
   port              = "9000"
   protocol          = "HTTP"
 
   default_action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.app_9000.arn
+    target_group_arn = aws_lb_target_group.control_center.arn
   }
 }
 
-resource "aws_lb_listener" "app_9090" {
+resource "aws_lb_listener" "sdk" {
   load_balancer_arn = aws_lb.app.arn
-  port              = "9090"
+  port              = "9050"
   protocol          = "HTTP"
 
   default_action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.app_9090.arn
+    target_group_arn = aws_lb_target_group.sdk.arn
   }
 }
 
-resource "aws_lb_listener" "app_5252" {
+resource "aws_lb_listener" "demo" {
   load_balancer_arn = aws_lb.app.arn
   port              = "5252"
   protocol          = "HTTP"
 
   default_action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.app_5252.arn
+    target_group_arn = aws_lb_target_group.demo.arn
   }
 }
 
@@ -813,10 +794,10 @@ resource "aws_cloudfront_distribution" "sdk" {
   comment = "Hyperswitch SDK Free Tier Distribution"
   origin {
     domain_name = aws_lb.app.dns_name
-    origin_id   = "app-alb-9090"
+    origin_id   = "app-alb-9050"
 
     custom_origin_config {
-      http_port              = 9090
+      http_port              = 9050
       https_port             = 443
       origin_protocol_policy = "http-only"
       origin_ssl_protocols   = ["TLSv1.2"]
@@ -826,7 +807,7 @@ resource "aws_cloudfront_distribution" "sdk" {
   default_cache_behavior {
     allowed_methods  = ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
     cached_methods   = ["GET", "HEAD"]
-    target_origin_id = "app-alb-9090"
+    target_origin_id = "app-alb-9050"
 
     forwarded_values {
       query_string = true
@@ -856,4 +837,122 @@ resource "aws_cloudfront_distribution" "sdk" {
   tags = {
     Name = "${var.stack_name}-sdk-distribution"
   }
+}
+
+resource "aws_cloudfront_distribution" "demo" {
+  enabled = true
+  comment = "Hyperswitch Demo App Free Tier Distribution"
+  origin {
+    domain_name = aws_lb.app.dns_name
+    origin_id   = "app-alb-5252"
+
+    custom_origin_config {
+      http_port              = 5252
+      https_port             = 443
+      origin_protocol_policy = "http-only"
+      origin_ssl_protocols   = ["TLSv1.2"]
+    }
+  }
+
+  default_cache_behavior {
+    allowed_methods  = ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
+    cached_methods   = ["GET", "HEAD"]
+    target_origin_id = "app-alb-5252"
+
+    forwarded_values {
+      query_string = true
+      headers      = ["*"]
+
+      cookies {
+        forward = "all"
+      }
+    }
+
+    viewer_protocol_policy = "allow-all"
+    min_ttl                = 0
+    default_ttl            = 0
+    max_ttl                = 0
+  }
+
+  restrictions {
+    geo_restriction {
+      restriction_type = "none"
+    }
+  }
+
+  viewer_certificate {
+    cloudfront_default_certificate = true
+  }
+
+  tags = {
+    Name = "${var.stack_name}-demo-distribution"
+  }
+}
+
+# ==========================================================
+#                      EC2 Instances
+# ==========================================================
+# Backend Instance (Router + Control Center)
+resource "aws_instance" "backend" {
+  ami                    = data.aws_ami.amazon_linux.id
+  instance_type          = "t2.micro"
+  subnet_id              = aws_subnet.public[0].id
+  vpc_security_group_ids = [aws_security_group.ec2.id]
+  iam_instance_profile   = aws_iam_instance_profile.ec2.name
+
+  user_data = base64encode(templatefile("${path.module}/userdata/app-dashboard.sh", {
+    redis_host         = aws_elasticache_cluster.redis.cache_nodes[0].address
+    db_host            = aws_db_instance.main.address
+    db_username        = var.db_username
+    db_password        = var.db_password
+    db_name            = var.db_name
+    admin_api_key      = var.admin_api_key
+    app_cloudfront_url = aws_cloudfront_distribution.app.domain_name
+    sdk_cloudfront_url = aws_cloudfront_distribution.sdk.domain_name
+    sdk_version        = var.sdk_version
+    sdk_sub_version    = var.sdk_sub_version
+  }))
+
+  tags = {
+    Name = "${var.stack_name}-backend-instance"
+    Type = "backend"
+  }
+
+  # Ensure RDS and ElastiCache are ready before starting EC2
+  depends_on = [
+    aws_db_instance.main,
+    aws_elasticache_cluster.redis,
+    aws_cloudfront_distribution.app,
+    aws_cloudfront_distribution.sdk
+  ]
+}
+
+# Frontend Instance (SDK + Demo App)
+resource "aws_instance" "frontend" {
+  ami                    = data.aws_ami.amazon_linux.id
+  instance_type          = "t2.micro"
+  subnet_id              = aws_subnet.public[1].id
+  vpc_security_group_ids = [aws_security_group.ec2.id]
+  iam_instance_profile   = aws_iam_instance_profile.ec2.name
+
+  user_data = base64encode(templatefile("${path.module}/userdata/sdk.sh", {
+    app_cloudfront_url  = aws_cloudfront_distribution.app.domain_name
+    sdk_cloudfront_url  = aws_cloudfront_distribution.sdk.domain_name
+    demo_cloudfront_url = aws_cloudfront_distribution.demo.domain_name
+    admin_api_key       = var.admin_api_key
+    sdk_version         = var.sdk_version
+    sdk_sub_version     = var.sdk_sub_version
+  }))
+
+  tags = {
+    Name = "${var.stack_name}-frontend-instance"
+    Type = "frontend"
+  }
+
+  # Frontend depends on backend being ready and CloudFront distributions
+  depends_on = [
+    aws_instance.backend,
+    aws_cloudfront_distribution.app,
+    aws_cloudfront_distribution.sdk
+  ]
 }
