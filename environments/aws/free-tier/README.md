@@ -7,7 +7,7 @@ This Terraform configuration deploys a complete Hyperswitch stack optimized for 
 - **Single EC2 Instance** (t2.micro) running all services:
   - Hyperswitch Router (Backend API) on port 80
   - Control Center (Admin UI) on port 9000
-  - SDK Server on port 9090
+  - SDK Server on port 9050
   - Demo Application on port 5252
 - **RDS PostgreSQL** (db.t3.micro) with automatic schema initialization
 - **ElastiCache Redis** (cache.t3.micro)
@@ -133,7 +133,7 @@ If the database initialization fails:
 
 - **Router Health**: `curl http://localhost/health`
 - **Control Center**: `curl http://localhost:9000/`
-- **SDK Server**: `curl http://localhost:9090/`
+- **SDK Server**: `curl http://localhost:9050/`
 - **Demo App**: `curl http://localhost:5252/`
 
 ## Cleanup

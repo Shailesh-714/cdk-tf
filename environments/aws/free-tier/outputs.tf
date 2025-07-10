@@ -117,7 +117,7 @@ output "alb_control_center_url" {
 
 output "alb_sdk_url" {
   description = "Direct ALB URL for SDK (for testing)"
-  value       = "http://${aws_lb.app.dns_name}:9090"
+  value       = "http://${aws_lb.app.dns_name}:9050"
 }
 
 output "alb_demo_url" {
