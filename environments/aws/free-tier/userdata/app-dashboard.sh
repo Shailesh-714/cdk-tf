@@ -58,16 +58,9 @@ if ! psql -h ${db_host} -U ${db_username} -d ${db_name} -tAc "SELECT 1 FROM info
     mkdir -p /tmp/hyperswitch-migrations
     cd /tmp/hyperswitch-migrations
 
-    # Download only the necessary files for migrations from specific version
-    echo "Downloading migration files from version ${router_version}..."
-    git init
-    git remote add origin https://github.com/juspay/hyperswitch.git
-    git config core.sparseCheckout true
-    echo "migrations/*" >.git/info/sparse-checkout
-    echo "diesel.toml" >>.git/info/sparse-checkout
-    echo "Justfile" >>.git/info/sparse-checkout
-    git fetch --depth=1 origin refs/tags/${router_version}:refs/tags/${router_version}
-    git checkout ${router_version}
+    # Clone the entire repository at the specific version
+    echo "Cloning Hyperswitch repository at version ${router_version}..."
+    git clone --depth=1 --branch ${router_version} https://github.com/juspay/hyperswitch.git .
 
     # Run migrations using Docker container with cargo-binstall for faster setup
     echo "Executing database migrations..."

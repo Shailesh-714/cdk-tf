@@ -588,7 +588,7 @@ resource "aws_lb_target_group" "sdk" {
 
   health_check {
     enabled  = true
-    path     = "/HyperLoader.js"
+    path     = "/${var.sdk_version}/${var.sdk_sub_version}/HyperLoader.js"
     protocol = "HTTP"
     matcher  = "200"
   }
@@ -631,13 +631,13 @@ resource "aws_lb_target_group_attachment" "control_center" {
 
 resource "aws_lb_target_group_attachment" "sdk" {
   target_group_arn = aws_lb_target_group.sdk.arn
-  target_id        = aws_instance.frontend.id
+  target_id        = aws_instance.sdk.id
   port             = 9050
 }
 
 resource "aws_lb_target_group_attachment" "demo" {
   target_group_arn = aws_lb_target_group.demo.arn
-  target_id        = aws_instance.frontend.id
+  target_id        = aws_instance.sdk.id
   port             = 5252
 }
 
@@ -930,7 +930,7 @@ resource "aws_instance" "backend" {
 }
 
 # Frontend Instance (SDK + Demo App)
-resource "aws_instance" "frontend" {
+resource "aws_instance" "sdk" {
   ami                    = data.aws_ami.amazon_linux.id
   instance_type          = "t2.micro"
   subnet_id              = aws_subnet.public[1].id
@@ -947,13 +947,12 @@ resource "aws_instance" "frontend" {
   }))
 
   tags = {
-    Name = "${var.stack_name}-frontend-instance"
-    Type = "frontend"
+    Name = "${var.stack_name}-sdk-instance"
+    Type = "sdk"
   }
 
-  # Frontend depends on backend being ready and CloudFront distributions
+  # Frontend depends CloudFront distributions
   depends_on = [
-    aws_instance.backend,
     aws_cloudfront_distribution.app,
     aws_cloudfront_distribution.sdk
   ]
