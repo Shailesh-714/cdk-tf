@@ -87,3 +87,5 @@ docs/.doctrees/
 # Terraform plan files
 *.tfplan
 plan.out
+
+Notes.md
