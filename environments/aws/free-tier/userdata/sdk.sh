@@ -31,8 +31,8 @@ sudo find /sdk_assets -type f -name "*.js" -exec sed -i "s|{{app_cloudfront_url}
 sudo find /sdk_assets -type f -name "*.js" -exec sed -i "s|{{sdk_cloudfront_url}}|$SDK_URL|g" {} \;
 
 # Create SDK directory structure
-sudo mkdir -p /sdk/${sdk_version}/${sdk_sub_version}
-sudo mv /sdk_assets/* /sdk/${sdk_version}/${sdk_sub_version}
+sudo mkdir -p /sdk/web/${sdk_version}/${sdk_sub_version}
+sudo mv /sdk_assets/* /sdk/web/${sdk_version}/${sdk_sub_version}
 sudo rm -rf /sdk_assets sdk_assets.zip
 
 # Start SDK server
@@ -41,4 +41,4 @@ echo "Starting Hyperswitch SDK server..."
 nohup python3 -m http.server 9050 --bind 0.0.0.0 >/dev/null 2>&1 &
 
 echo "SDK server started on port 9050"
-echo "SDK available at: $SDK_URL/${sdk_version}/${sdk_sub_version}/HyperLoader.js"
+echo "SDK available at: $SDK_URL/web/${sdk_version}/${sdk_sub_version}/HyperLoader.js"

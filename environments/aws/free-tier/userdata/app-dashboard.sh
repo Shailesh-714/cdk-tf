@@ -116,7 +116,7 @@ ROUTER__USER__BASE_URL=https://${app_cloudfront_url}
 
 # Control Center Configuration
 apiBaseUrl=https://${app_cloudfront_url}
-sdkBaseUrl=https://${sdk_cloudfront_url}/${sdk_version}/${sdk_sub_version}
+sdkBaseUrl=https://${sdk_cloudfront_url}/web/${sdk_version}/${sdk_sub_version}
 EOF
 
 # Start services
@@ -124,7 +124,7 @@ echo "Starting Hyperswitch backend services..."
 
 # Router with memory limit
 echo "Starting Hyperswitch Router..."
-docker pull juspaydotin/hyperswitch-router:${router_version}
+docker pull juspaydotin/hyperswitch-router:${router_version}-standalone
 docker run -d --name hyperswitch-router \
     --memory="512m" \
     --memory-swap="1g" \
@@ -132,7 +132,7 @@ docker run -d --name hyperswitch-router \
     -p 8080:8080 \
     -v /opt/hyperswitch/docker_compose.toml:/local/config/docker_compose.toml \
     --restart unless-stopped \
-    juspaydotin/hyperswitch-router:${router_version} ./router -f /local/config/docker_compose.toml
+    juspaydotin/hyperswitch-router:${router_version}-standalone ./router -f /local/config/docker_compose.toml
 
 # Wait for router
 echo "Waiting for router to be healthy..."
@@ -147,7 +147,7 @@ done
 
 # Update dashboard configuration
 sed -i "s|api_url=\"http://localhost:8080\"|api_url=\"https://${app_cloudfront_url}\"|g" /opt/hyperswitch/dashboard.toml
-sed -i "s|sdk_url=\"http://localhost:9050/HyperLoader.js\"|sdk_url=\"https://${sdk_cloudfront_url}/${sdk_version}/${sdk_sub_version}/HyperLoader.js\"|g" /opt/hyperswitch/dashboard.toml
+sed -i "s|sdk_url=\"http://localhost:9050/HyperLoader.js\"|sdk_url=\"https://${sdk_cloudfront_url}/web/${sdk_version}/${sdk_sub_version}/HyperLoader.js\"|g" /opt/hyperswitch/dashboard.toml
 
 # Control Center with memory limit
 echo "Starting Control Center..."

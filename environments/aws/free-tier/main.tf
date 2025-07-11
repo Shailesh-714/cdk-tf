@@ -588,7 +588,7 @@ resource "aws_lb_target_group" "sdk" {
 
   health_check {
     enabled  = true
-    path     = "/${var.sdk_version}/${var.sdk_sub_version}/HyperLoader.js"
+    path     = "/web/${var.sdk_version}/${var.sdk_sub_version}/HyperLoader.js"
     protocol = "HTTP"
     matcher  = "200"
   }
